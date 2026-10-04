@@ -10,7 +10,7 @@ public:
     explicit BuzzerAudio(int8_t pin) : pin_(pin) {}
 
     bool begin() override;
-    bool play(uint16_t track) override;
+    bool play(uint16_t track, uint32_t nowMs) override;
     void stop() override;
     bool isPlaying() const override { return melody_ != nullptr; }
     void tick(uint32_t nowMs) override;

@@ -16,7 +16,7 @@ WARN="-std=c++17 -Wall -Wextra -Wno-unused-parameter -g"
 
 g++ $WARN \
     src/app/SprintData.cpp src/app/Pager.cpp src/app/Screens.cpp src/app/SampleData.cpp \
-    src/display/AzText.cpp tools/native_tests/test_main.cpp -o "$OUT/test_main"
+    src/display/AzText.cpp src/audio/SimMp3Audio.cpp tools/native_tests/test_main.cpp -o "$OUT/test_main"
 "$OUT/test_main" "$@"
 
 AJ="${ARDUINOJSON_SRC:-}"

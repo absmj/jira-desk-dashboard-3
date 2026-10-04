@@ -293,6 +293,64 @@ static void testRenderFitsDisplay() {
     CHECK(d3.violations == 0);
 }
 
+
+// ---- SimMp3Audio ----------------------------------------------------------------------
+#include "../../src/audio/SimMp3Audio.h"
+
+struct FakeCard : IMp3Card {
+    bool trackBytes(uint16_t t, uint32_t& b) override {
+        if (t == 2) { b = 8000; return true; }   // 8000*8/64 = 1000 ms
+        if (t == 3) { b = 10; return true; }     // tiny -> min duration
+        return false;
+    }
+};
+struct FakeSpeaker : IAudio {
+    int plays = 0, stops = 0, ticks = 0;
+    uint16_t last = 0;
+    bool begin() override { return true; }
+    bool play(uint16_t t, uint32_t) override { ++plays; last = t; return true; }
+    void stop() override { ++stops; }
+    bool isPlaying() const override { return false; }
+    void tick(uint32_t) override { ++ticks; }
+};
+
+static void testSimMp3() {
+    CHECK(SimMp3Audio::durationFromBytes(8000) == 1000);
+    CHECK(SimMp3Audio::durationFromBytes(10) == SimMp3Audio::kMinDurationMs);
+    CHECK(SimMp3Audio::durationFromBytes(0xFFFFFFFFu) > 500000000u);  // no overflow
+
+    FakeCard card;
+    FakeSpeaker sp;
+    SimMp3Audio a(card, sp);
+    uint16_t fin = 0;
+
+    CHECK(!a.play(9, 0));                 // missing file
+    CHECK(!a.isPlaying() && sp.plays == 0);
+
+    CHECK(a.play(2, 1000));
+    CHECK(a.isPlaying() && sp.last == 2 && a.durationMs() == 1000);
+    a.tick(1999);
+    CHECK(a.isPlaying() && !a.takeFinished(fin));
+    a.tick(2000);
+    CHECK(!a.isPlaying() && a.takeFinished(fin) && fin == 2);
+    CHECK(!a.takeFinished(fin));          // event delivered once
+
+    CHECK(a.play(2, 5000));               // restart replaces current track
+    CHECK(a.play(3, 5100));
+    CHECK(sp.last == 3 && a.durationMs() == SimMp3Audio::kMinDurationMs);
+    a.stop();
+    CHECK(!a.isPlaying() && !a.takeFinished(fin));
+
+    CHECK(a.play(2, 0xFFFFFF00u));        // millis() wrap while playing
+    a.tick(0xFFFFFF00u + 999u);
+    CHECK(a.isPlaying());
+    a.tick(0xFFFFFF00u + 1000u);          // wraps past 2^32
+    CHECK(!a.isPlaying());
+
+    a.setVolume(99);
+    CHECK(a.volume() == 30);
+}
+
 static void printGlyphs() {
     printf("\nglyph preview (# = pixel):\n");
     const char* az = "əƏıİöÖüÜçÇşŞğĞ";
@@ -317,6 +375,7 @@ int main(int argc, char** argv) {
     testPager();
     testPagerPauseAndAlert();
     testRenderFitsDisplay();
+    testSimMp3();
     if (argc > 1 && strcmp(argv[1], "--glyphs") == 0) printGlyphs();
     printf("\n%d checks, %d failed\n", g_checks, g_failed);
     (void)pageIndexNow;

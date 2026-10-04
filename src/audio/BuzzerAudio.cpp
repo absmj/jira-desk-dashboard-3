@@ -33,7 +33,7 @@ void BuzzerAudio::tone(uint16_t hz) {
 #endif
 }
 
-bool BuzzerAudio::play(uint16_t track) {
+bool BuzzerAudio::play(uint16_t track, uint32_t nowMs) {
     switch (track) {
         case 1: melody_ = kTrack1; length_ = sizeof(kTrack1) / sizeof(Note); break;
         case 2: melody_ = kTrack2; length_ = sizeof(kTrack2) / sizeof(Note); break;
@@ -44,7 +44,7 @@ bool BuzzerAudio::play(uint16_t track) {
     }
     index_ = 0;
     tone(melody_[0].hz);
-    noteEndMs_ = millis() + melody_[0].ms;
+    noteEndMs_ = nowMs + melody_[0].ms;
     return true;
 }
 

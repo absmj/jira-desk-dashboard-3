@@ -97,3 +97,15 @@ The Azerbaijani letters are drawn on a 5 × 8 pixel grid. Capitals with an accen
 above (`Ö İ Ğ`) cannot keep full capital height and are drawn slightly smaller;
 `ğ Ğ` use a flat bar instead of a curved breve. Check them on the real Nokia
 5110 and adjust the table in `src/display/AzText.cpp` if needed.
+
+## MP3 files and the dev simulation
+
+`audio: "0002.mp3"` in `alerts.json` means track 2 -> file `/MP3/0002.mp3`.
+
+- **Prod:** the files are on the DFPlayer's own FAT32 SD card under `/MP3/` (not in this repo's flash).
+- **Dev (Wokwi):** `data/MP3/NNNN.mp3` is packed into LittleFS together with the JSONs, and
+  `SimMp3Audio` treats LittleFS as the card. It checks that the file exists (missing -> `[audio] track N not found`),
+  derives the play duration from the file size (assumes 64 kbps), and queues a "finished" event.
+  The sound is the buzzer melody of the same track number. The DFPlayer UART protocol is not simulated.
+- Regenerate the test files: `python3 tools/make_test_mp3.py` (needs `pip install lameenc`).
+  Then `pio run -e sim -t buildfs` and rebuild, so the new files are inside `firmware.merged.bin`.

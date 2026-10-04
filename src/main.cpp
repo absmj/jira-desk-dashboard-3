@@ -10,6 +10,10 @@
 #include "app/SprintData.h"
 #include "app/SprintLoader.h"
 #include "audio/BuzzerAudio.h"
+#if defined(AUDIO_SIM_MP3)
+#include "audio/LittleFsCard.h"
+#include "audio/SimMp3Audio.h"
+#endif
 #include "pins.h"
 
 #if defined(DISPLAY_ILI9341)
@@ -30,7 +34,15 @@ static AlertConfig alerts;     // zero-initialised: count == 0 -> nothing ever f
 static Pager pager;
 static AlertEngine engine;
 static SimClock simClock;
-static BuzzerAudio audio(pins::kBuzzer);  // dev stand-in for the DFPlayer
+static BuzzerAudio buzzer(pins::kBuzzer);  // dev speaker
+#if defined(AUDIO_SIM_MP3)
+// Dev: "MP3 files" live in LittleFS under /MP3/NNNN.mp3 and are played as buzzer melodies.
+static LittleFsCard card;
+static SimMp3Audio simMp3(card, buzzer);
+static IAudio& audio = simMp3;
+#else
+static IAudio& audio = buzzer;
+#endif
 
 static uint32_t lastPollMs = 0;
 
@@ -61,6 +73,7 @@ void setup() {
 
     display.begin();
     audio.begin();
+    audio.setVolume(20);
 
     if (!LittleFS.begin(false)) {  // false = never auto-format: protect existing data
         Serial.println("[fs] LittleFS mount failed: the flash partition is blank or has no valid image.");
@@ -81,6 +94,12 @@ void setup() {
 void loop() {
     const uint32_t now = millis();
     audio.tick(now);
+#if defined(AUDIO_SIM_MP3)
+    uint16_t doneTrack = 0;
+    if (simMp3.takeFinished(doneTrack)) {
+        Serial.printf("[audio] track %u finished\n", static_cast<unsigned>(doneTrack));
+    }
+#endif
 
     // Poll the rules 4x per second; only one alert on screen at a time.
     if (static_cast<uint32_t>(now - lastPollMs) >= 250) {
@@ -88,7 +107,10 @@ void loop() {
         if (!pager.alertActive()) {
             if (const AlertRule* r = engine.poll(alerts, sprint, simClock.now(now))) {
                 pager.showAlert("Diqqət!", r->text[0] ? r->text : r->id, now);
-                if (r->track) audio.play(r->track);
+                if (r->track && !audio.play(r->track, now)) {
+                    Serial.printf("[audio] track %u not found (/MP3/%04u.mp3)\n",
+                                  static_cast<unsigned>(r->track), static_cast<unsigned>(r->track));
+                }
                 Serial.printf("[alert] %s track=%u\n", r->id, static_cast<unsigned>(r->track));
             }
         }
