@@ -61,6 +61,11 @@ bool isValidDate(const Date& d);
 bool parseDate(const char* s, Date& out);
 // Whole days from a to b (negative if b is before a).
 int32_t daysBetween(const Date& a, const Date& b);
+// Days since 1970-01-01, and the inverse.
+int32_t daysSinceEpoch(const Date& d);
+Date civilFromDays(int32_t days);
+// 0 = Sunday .. 6 = Saturday.
+uint8_t weekdayOf(const Date& d);
 
 // ---- derived values -----------------------------------------------------------
 uint8_t progressPct(const SprintData& s);                  // 0..100, rounded

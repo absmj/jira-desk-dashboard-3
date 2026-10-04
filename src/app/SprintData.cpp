@@ -40,8 +40,28 @@ static int32_t daysFromCivil(int y, unsigned m, unsigned d) {
     return era * 146097 + static_cast<int32_t>(doe) - 719468;
 }
 
-int32_t daysBetween(const Date& a, const Date& b) {
-    return daysFromCivil(b.y, b.m, b.d) - daysFromCivil(a.y, a.m, a.d);
+int32_t daysSinceEpoch(const Date& d) { return daysFromCivil(d.y, d.m, d.d); }
+
+int32_t daysBetween(const Date& a, const Date& b) { return daysSinceEpoch(b) - daysSinceEpoch(a); }
+
+Date civilFromDays(int32_t z) {
+    z += 719468;
+    const int era = (z >= 0 ? z : z - 146096) / 146097;
+    const unsigned doe = static_cast<unsigned>(z - era * 146097);
+    const unsigned yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    const int y = static_cast<int>(yoe) + era * 400;
+    const unsigned doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    const unsigned mp = (5 * doy + 2) / 153;
+    const unsigned d = doy - (153 * mp + 2) / 5 + 1;
+    const unsigned m = mp < 10 ? mp + 3 : mp - 9;
+    return Date{static_cast<uint16_t>(y + (m <= 2 ? 1 : 0)), static_cast<uint8_t>(m),
+                static_cast<uint8_t>(d)};
+}
+
+uint8_t weekdayOf(const Date& d) {
+    // 1970-01-01 was a Thursday (4). 0 = Sunday .. 6 = Saturday.
+    const int32_t days = daysSinceEpoch(d);
+    return static_cast<uint8_t>(((days % 7) + 7 + 4) % 7);
 }
 
 uint8_t progressPct(const SprintData& s) {

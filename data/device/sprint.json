@@ -1,0 +1,17 @@
+{
+  "v": 1,
+  "sprint": { "name": "SPRINT 24", "start": "2026-10-01", "end": "2026-10-18", "done": 26, "total": 40 },
+  "stats": {
+    "topAssignee": { "name": "Əli Məmmədov", "count": 5 },
+    "byStatus": { "todo": 6, "inProgress": 8, "done": 26 },
+    "overdue": 2, "blocked": 1, "pace": "behind"
+  },
+  "tasks": [
+    { "k": "PRJ-101", "t": "Giriş ekranı",         "s": "IP", "a": "Əli Məmmədov" },
+    { "k": "PRJ-102", "t": "API testləri",         "s": "TD", "a": "Leyla Həsənova" },
+    { "k": "PRJ-103", "t": "Hesabat səhifəsi",     "s": "BL", "a": "Əli Məmmədov" },
+    { "k": "PRJ-104", "t": "Ödəniş inteqrasiyası", "s": "IP", "a": "Nigar Əliyeva" },
+    { "k": "PRJ-105", "t": "Şifrə bərpası",        "s": "TD", "a": "Rəşad Quliyev" },
+    { "k": "PRJ-090", "t": "Login səhifəsi",       "s": "DN", "a": "Rəşad Quliyev" }
+  ]
+}

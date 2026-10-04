@@ -1,0 +1,14 @@
+{
+  "v": 1,
+  "quietHours": { "from": "19:00", "to": "08:30" },
+  "rules": [
+    { "id": "standup",     "when": { "time": "09:55", "days": ["mon","tue","wed","thu","fri","sun"] },
+      "audio": "0005.mp3", "repeat": "daily", "text": "Standup 5 dəq sonra" },
+    { "id": "half_done",   "when": { "progress": { "gte": 50 } },
+      "audio": "0003.mp3", "repeat": "once", "text": "Sprint yarıdan çox bitib" },
+    { "id": "has_overdue", "when": { "overdue": { "gte": 1 } },
+      "audio": "0004.mp3", "repeat": "cooldown", "cooldownMin": 30, "text": "Gecikən task var" },
+    { "id": "last_day",    "when": { "daysLeft": { "lte": 1 } },
+      "audio": "0002.mp3", "repeat": "daily", "text": "Sprint son gün!" }
+  ]
+}

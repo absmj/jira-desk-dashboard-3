@@ -27,6 +27,10 @@ constexpr int8_t kLcdDc  = 3;
 constexpr int8_t kLcdCe  = 10;
 constexpr int8_t kLcdRst = 2;
 
+// DEV only: passive buzzer standing in for the DFPlayer (GPIO7 is not needed for
+// an SD module because the JSON files live in internal flash).
+constexpr int8_t kBuzzer = 7;
+
 // Simulation-only ILI9341 (hardware SPI on the default pins: SCK=4, MISO=5, MOSI=6).
 constexpr int8_t kTftCs  = 10;
 constexpr int8_t kTftDc  = 3;

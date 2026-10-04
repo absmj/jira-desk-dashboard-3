@@ -6,9 +6,11 @@ documents. The device never talks to Jira and never computes statistics.
 Text must be **Unicode NFC** (`str.normalize("NFC")` in JavaScript). Supported
 non-ASCII letters: `ə Ə ı İ ö Ö ü Ü ç Ç ş Ş ğ Ğ`. Anything else is shown as `?`.
 
-Status of this document: `sprint.json` matches the C++ structs in
-`src/app/SprintData.h` (Phase 2). Parsing from SD/BLE arrives in Phases 4 and 7.
-`alerts.json` is a **design only** until Phase 6; nothing reads it yet.
+Status of this document: both files are parsed on the device from internal flash
+(LittleFS, `/device/*.json`, built from the `data/` folder). `sprint.json` matches
+`src/app/SprintData.h`; `alerts.json` matches `src/app/AlertRules.h`. Alerts play
+through `IAudio`: a buzzer in the simulator (dev), the DFPlayer on real hardware
+(Phase 6, MP3 files on the DFPlayer's own SD card).
 
 ## /device/sprint.json
 
@@ -49,7 +51,7 @@ Status of this document: `sprint.json` matches the C++ structs in
 
 `DN` tasks are not listed on screen. Blocked tasks are prefixed with `!`.
 
-## /device/alerts.json  (design only, Phase 6)
+## /device/alerts.json
 
 Rules evaluated when new data arrives and once a minute. They are separate from
 time-based notifications because they depend on **data**, not on the clock.
@@ -67,9 +69,15 @@ time-based notifications because they depend on **data**, not on the clock.
 }
 ```
 
-- Conditions: `daysLeft`, `progress`, `overdue`, `blocked`, `time`. No expression parser.
-- `repeat`: `once`, `daily` or `cooldown`. "Already played" state is stored on the SD
-  card so a reboot does not replay a sound.
+- Conditions: `daysLeft`, `progress`, `overdue`, `blocked` (each `{"gte": n}` and/or
+  `{"lte": n}`), `time` (`"HH:MM"`, matches only during that minute) and `days`
+  (`["mon",...,"sun"]`). All present conditions must hold. A rule with no condition is rejected.
+- Optional: `enabled` (default true), `text` (shown on screen), `audio` (`"NNNN.mp3"`, 4 digits).
+- `repeat`: `once`, `daily` (default) or `cooldown` (needs `cooldownMin`, 1..1440).
+- Invalid rules are skipped and counted; a bad version or missing `rules` rejects the file.
+- Policies: one alert per poll; nothing fires in quiet hours (and the rule is not consumed);
+  a `time` rule missed while the device is off or busy is skipped, not replayed; fired-state is
+  RAM-only for now, so a reboot can repeat `once`/`daily` rules whose condition still holds.
 - When a rule fires, the device calls `Pager::showAlert(title, text)` (already
   implemented) and plays the MP3. Nothing plays during `quietHours`.
 
