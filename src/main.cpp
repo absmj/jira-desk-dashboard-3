@@ -63,7 +63,8 @@ void setup() {
     audio.begin();
 
     if (!LittleFS.begin(false)) {  // false = never auto-format: protect existing data
-        Serial.println("[fs] LittleFS mount failed (no filesystem image in flash?)");
+        Serial.println("[fs] LittleFS mount failed: the flash partition is blank or has no valid image.");
+        Serial.println("[fs] Run `pio run -e sim -t buildfs`, rebuild, and check merge_firmware output.");
     } else {
         loadData();
     }

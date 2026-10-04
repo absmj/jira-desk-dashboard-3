@@ -2,7 +2,7 @@
 # into one file that Wokwi can load (.pio/build/<env>/firmware.merged.bin).
 # Based on the script in the Wokwi docs: https://docs.wokwi.com/vscode/platformio
 Import("env")
-from os.path import join, isfile
+from os.path import join, isfile, getsize
 
 # Offset of the spiffs/littlefs partition. 0x290000 is the default 4MB Arduino
 # partition table (the esp32-c3-devkitm-1 default). Change it if you use a custom
@@ -32,5 +32,14 @@ def merge_firmware(source, target, env):
         # offsets may be strings ("0x1000") or ints, depending on the framework
         cmd += [offset if isinstance(offset, str) else hex(offset), '"%s"' % path]
     env.Execute(env.VerboseAction(" ".join(cmd), "Merging firmware images into %s" % merged))
+
+    # Diagnostics: a merged image that contains the filesystem ends at the end of the
+    # spiffs partition (FS_OFFSET + 0x160000 = 4128768 bytes for the default table).
+    # A much smaller file means the filesystem was NOT merged, and LittleFS will fail
+    # to mount with "Corrupted dir pair".
+    included = bool(FS_OFFSET and isfile(fs_image))
+    if isfile(merged):
+        print("merge_firmware: %s = %d bytes, filesystem %s" %
+              (merged, getsize(merged), "INCLUDED at " + str(FS_OFFSET) if included else "NOT included"))
 
 env.AddPostAction("$BUILD_DIR/${PROGNAME}.bin", merge_firmware)
