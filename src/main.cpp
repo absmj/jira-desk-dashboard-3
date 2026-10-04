@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <LittleFS.h>
+#include <esp_partition.h>
 
 #include "app/AlertEngine.h"
 #include "app/AlertLoader.h"
@@ -46,6 +47,28 @@ static IAudio& audio = buzzer;
 
 static uint32_t lastPollMs = 0;
 
+// Boot diagnostic: where the firmware EXPECTS the filesystem, and what is actually there.
+// "littlefs" in the first bytes = a valid image; all FF = blank flash (image not merged
+// or merged at another offset).
+static void dumpFsPartition() {
+    const esp_partition_t* p = esp_partition_find_first(
+        ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_SPIFFS, nullptr);
+    if (!p) {
+        Serial.println("[fs] no spiffs/littlefs partition in the partition table");
+        return;
+    }
+    Serial.printf("[fs] partition '%s' offset=0x%x size=0x%x\n", p->label,
+                  static_cast<unsigned>(p->address), static_cast<unsigned>(p->size));
+    uint8_t b[16] = {0};
+    if (esp_partition_read(p, 0, b, sizeof(b)) != ESP_OK) {
+        Serial.println("[fs] cannot read the partition");
+        return;
+    }
+    Serial.print("[fs] first bytes:");
+    for (uint8_t v : b) Serial.printf(" %02X", v);
+    Serial.println();
+}
+
 static void loadData() {
     const char* err = nullptr;
     JsonDocument doc;
@@ -78,6 +101,7 @@ void setup() {
     if (!LittleFS.begin(false)) {  // false = never auto-format: protect existing data
         Serial.println("[fs] LittleFS mount failed: the flash partition is blank or has no valid image.");
         Serial.println("[fs] Run `pio run -e sim -t buildfs`, rebuild, and check merge_firmware output.");
+        dumpFsPartition();
     } else {
         loadData();
     }
