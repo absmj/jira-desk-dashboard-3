@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "author": "Jira Desk Dashboard",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-c3-devkitm-1", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    { "type": "wokwi-ili9341", "id": "lcd1", "top": -190, "left": -38.7, "attrs": {} },
+    { "type": "wokwi-microsd-card", "id": "sd1", "top": 120, "left": 220, "attrs": {} }
+  ],
+  "connections": [
+    ["esp:TX", "$serialMonitor:RX", "", []],
+    ["esp:RX", "$serialMonitor:TX", "", []],
+    ["esp:3V3.1", "lcd1:VCC", "red", []],
+    ["esp:3V3.1", "lcd1:LED", "red", []],
+    ["esp:GND.1", "lcd1:GND", "black", []],
+    ["esp:4", "lcd1:SCK", "green", []],
+    ["esp:6", "lcd1:MOSI", "blue", []],
+    ["esp:5", "lcd1:MISO", "yellow", []],
+    ["esp:10", "lcd1:CS", "purple", []],
+    ["esp:3", "lcd1:D/C", "orange", []],
+    ["esp:2", "lcd1:RST", "gray", []],
+    ["esp:7",     "sd1:CS",  "orange", []],
+    ["esp:4",     "sd1:SCK", "green",  []],
+    ["esp:6",     "sd1:DI",  "blue",   []],
+    ["esp:5",     "sd1:DO",  "yellow", []],
+    ["esp:3V3.1", "sd1:VCC", "red",    []],
+    ["esp:GND.1", "sd1:GND", "black",  []]
+  ],
+  "dependencies": {}
+}

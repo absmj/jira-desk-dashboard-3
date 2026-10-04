@@ -1,0 +1,91 @@
+# Data formats (web app → device)
+
+The web app reads Jira, computes all statistics, and sends two **separate** JSON
+documents. The device never talks to Jira and never computes statistics.
+
+Text must be **Unicode NFC** (`str.normalize("NFC")` in JavaScript). Supported
+non-ASCII letters: `ə Ə ı İ ö Ö ü Ü ç Ç ş Ş ğ Ğ`. Anything else is shown as `?`.
+
+Status of this document: `sprint.json` matches the C++ structs in
+`src/app/SprintData.h` (Phase 2). Parsing from SD/BLE arrives in Phases 4 and 7.
+`alerts.json` is a **design only** until Phase 6; nothing reads it yet.
+
+## /device/sprint.json
+
+```json
+{
+  "v": 1,
+  "sprint": {
+    "name": "SPRINT 24",
+    "start": "2026-10-01",
+    "end": "2026-10-18",
+    "done": 26,
+    "total": 40
+  },
+  "stats": {
+    "topAssignee": { "name": "Əli Məmmədov", "count": 5 },
+    "byStatus": { "todo": 6, "inProgress": 8, "done": 26 },
+    "overdue": 2,
+    "blocked": 1,
+    "pace": "behind"
+  },
+  "tasks": [
+    { "k": "PRJ-101", "t": "Giriş ekranı", "s": "IP", "a": "Əli Məmmədov" }
+  ]
+}
+```
+
+| Field | Rule |
+|---|---|
+| `sprint.name` | up to 23 bytes; shown truncated to 13 characters |
+| `start`, `end` | `YYYY-MM-DD`, valid calendar date, years 2000–2099 |
+| `done`, `total` | integers; progress % is derived on the device |
+| `stats.topAssignee` | person with the most **open** tasks; `name` up to 23 bytes |
+| `stats.pace` | `"ahead"`, `"onTrack"` or `"behind"` (actual vs ideal burndown) |
+| `tasks` | at most **24**; send only what is worth listing, open tasks first |
+| `tasks[].k` | Jira key, up to 11 bytes; the project prefix is dropped on screen |
+| `tasks[].t` | title, up to 39 bytes (about 19 Azerbaijani letters) |
+| `tasks[].s` | `"TD"` to do, `"IP"` in progress, `"BL"` blocked, `"DN"` done |
+
+`DN` tasks are not listed on screen. Blocked tasks are prefixed with `!`.
+
+## /device/alerts.json  (design only, Phase 6)
+
+Rules evaluated when new data arrives and once a minute. They are separate from
+time-based notifications because they depend on **data**, not on the clock.
+
+```json
+{
+  "v": 1,
+  "quietHours": { "from": "19:00", "to": "08:30" },
+  "rules": [
+    { "id": "last_day",    "when": { "daysLeft": { "lte": 1 } },  "audio": "0002.mp3", "repeat": "daily", "text": "Sprint son gün!" },
+    { "id": "half_done",   "when": { "progress": { "gte": 50 } },  "audio": "0003.mp3", "repeat": "once" },
+    { "id": "has_overdue", "when": { "overdue":  { "gte": 1 } },   "audio": "0004.mp3", "repeat": "cooldown", "cooldownMin": 240 },
+    { "id": "standup",     "when": { "time": "09:55", "days": ["mon","tue","wed","thu","fri"] }, "audio": "0005.mp3", "repeat": "daily" }
+  ]
+}
+```
+
+- Conditions: `daysLeft`, `progress`, `overdue`, `blocked`, `time`. No expression parser.
+- `repeat`: `once`, `daily` or `cooldown`. "Already played" state is stored on the SD
+  card so a reboot does not replay a sound.
+- When a rule fires, the device calls `Pager::showAlert(title, text)` (already
+  implemented) and plays the MP3. Nothing plays during `quietHours`.
+
+## Display limits (84 × 48 px)
+
+| Item | Limit |
+|---|---|
+| Characters per line | 13 (text beyond this is cut and ends with `.`) |
+| Content lines per page | 4, under a one-line header |
+| Task rows per page | 4 |
+| Pages in rotation | 16 maximum |
+| Page dwell time | dashboard 6 s, sprint 4 s, stats 4.5 s, attention 4 s, tasks 4.5 s |
+
+## Glyph limitations
+
+The Azerbaijani letters are drawn on a 5 × 8 pixel grid. Capitals with an accent
+above (`Ö İ Ğ`) cannot keep full capital height and are drawn slightly smaller;
+`ğ Ğ` use a flat bar instead of a curved breve. Check them on the real Nokia
+5110 and adjust the table in `src/display/AzText.cpp` if needed.
