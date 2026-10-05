@@ -208,6 +208,17 @@ def write_stl(m, path):
     return len(f)
 
 
+def write_json(m, path):
+    """Compact indexed mesh for the web viewer (STL stays the print format)."""
+    import json
+    mesh = m.to_mesh()
+    v = np.asarray(mesh.vert_properties)[:, :3]
+    f = np.asarray(mesh.tri_verts)
+    with open(path, 'w') as fh:
+        json.dump({'positions': [round(float(x), 3) for x in v.ravel()],
+                   'index': [int(i) for i in f.ravel()]}, fh, separators=(',', ':'))
+
+
 def report(name, m):
     bb = m.bounding_box()
     size = [round(bb[3 + i] - bb[i], 1) for i in range(3)]
@@ -222,6 +233,8 @@ def main():
     for name, part in (('shell', build_shell()), ('base', build_base()), ('inlays', build_inlays())):
         report(name, part)
         write_stl(part, out / f'{name}.stl')
+        if name != 'inlays':
+            write_json(part, out / f'{name}.json')
     print('written to', out)
 
 
