@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="az">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sprint Desk Göndərici</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* Layout: three numbered steps on one page (Jira data -> check -> device), because the order is the point. */
+  :root {
+    --bg: #eef0f1; --panel: #fbfbfb; --fg: #1a2124; --muted: #5d676c; --line: #d3d9dc;
+    --accent: #1f5fbf; --accent-fg: #ffffff; --ok: #1d7a4a; --warn: #8a4b00; --err: #b3261e;
+    --code: #f0f2f3;
+    --font-ui: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14181a; --panel: #1b2124; --fg: #e6eaeb; --muted: #97a3a8; --line: #2d363a;
+      --accent: #6ea2f2; --accent-fg: #0d1b30; --ok: #5fcf93; --warn: #e0a95a; --err: #ff8f86; --code: #12171a;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14181a; --panel: #1b2124; --fg: #e6eaeb; --muted: #97a3a8; --line: #2d363a;
+    --accent: #6ea2f2; --accent-fg: #0d1b30; --ok: #5fcf93; --warn: #e0a95a; --err: #ff8f86; --code: #12171a;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 var(--font-ui); padding: 16px; }
+  main { max-width: 980px; margin: 0 auto; display: grid; gap: 16px; }
+  h1 { font: 800 24px/1.15 var(--font-ui); margin: 0; }
+  .lead { color: var(--muted); margin: 4px 0 0; max-width: 62ch; }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; min-width: 0; }
+  h2 { font: 600 12px var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; display: flex; gap: 10px; align-items: baseline; }
+  h2 b { color: var(--fg); font-size: 18px; letter-spacing: 0; }
+  label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); min-width: 0; }
+  textarea, input[type=text], input[type=date] {
+    font: 13px/1.4 var(--font-mono); color: var(--fg); background: var(--code); border: 1px solid var(--line);
+    border-radius: 4px; padding: 8px; width: 100%; min-width: 0;
+  }
+  textarea { resize: vertical; min-height: 130px; }
+  button { font: 600 14px var(--font-ui); border-radius: 4px; padding: 8px 14px; cursor: pointer; border: 1px solid var(--line); background: var(--panel); color: var(--fg); }
+  button.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button:focus-visible, textarea:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+  .grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 700px) { .grid4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+  .chip { border: 1px solid var(--line); border-radius: 4px; padding: 4px 10px; font: 13px var(--font-mono); }
+  .chip b { font-weight: 500; color: var(--muted); margin-right: 6px; }
+  .msg { margin: 8px 0 0; padding: 8px 10px; border-radius: 4px; border: 1px solid var(--line); font-size: 13px; }
+  .msg.err { color: var(--err); border-color: var(--err); }
+  .msg.warn { color: var(--warn); border-color: var(--warn); }
+  .msg.ok { color: var(--ok); border-color: var(--ok); }
+  table { width: 100%; border-collapse: collapse; font: 12px var(--font-mono); }
+  th, td { text-align: left; padding: 4px 8px 4px 0; border-bottom: 1px dotted var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; }
+  .tw { overflow-x: auto; }
+  .st { display: inline-block; min-width: 2.2em; text-align: center; border: 1px solid var(--line); border-radius: 3px; }
+  .st.BL { color: var(--err); border-color: var(--err); }
+  .st.IP { color: var(--accent); border-color: var(--accent); }
+  details { margin-top: 10px; }
+  summary { cursor: pointer; color: var(--muted); }
+  pre { background: var(--code); border: 1px solid var(--line); border-radius: 4px; padding: 10px; overflow-x: auto; font: 12px/1.45 var(--font-mono); margin: 8px 0 0; max-height: 260px; }
+  code { font-family: var(--font-mono); font-size: 12px; background: var(--code); padding: 1px 4px; border-radius: 3px; }
+  .steps { margin: 0 0 8px; padding-left: 20px; color: var(--muted); }
+  .steps li { margin: 4px 0; }
+  progress { width: 100%; height: 10px; accent-color: var(--accent); }
+  #log { max-height: 160px; overflow: auto; }
+  .muted { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Sprint Desk Göndərici</h1>
+    <p class="lead">Jira sprint məlumatını götürür, statistikanı hesablayır və Bluetooth ilə cihaza göndərir. Cihaz Jira-ya qoşulmur: o, yalnız hazır JSON-u saxlayır və göstərir.</p>
+  </header>
+
+  <section aria-labelledby="s1">
+    <h2 id="s1"><b>1</b> Jira məlumatı</h2>
+    <ol class="steps">
+      <li>Jira-ya brauzerdə daxil olun. Aktiv sprint-in nömrəsini tapın: <code>https://SIZIN.atlassian.net/rest/agile/1.0/board/BOARD_ID/sprint?state=active</code></li>
+      <li>Sprint task-larını açın: <code>https://SIZIN.atlassian.net/rest/agile/1.0/sprint/SPRINT_ID/issue?maxResults=100</code></li>
+      <li>Açılan JSON-u kopyalayıb aşağıya yapışdırın (və ya fayl kimi saxlayıb seçin).</li>
+    </ol>
+    <label>Jira JSON
+      <textarea id="jira" spellcheck="false" placeholder='{"issues":[ ... ]}'></textarea>
+    </label>
+    <div class="row">
+      <input type="file" id="file" accept=".json,application/json" aria-label="JSON faylı seçin">
+      <button id="sample" type="button">Nümunə data</button>
+    </div>
+    <p class="muted" style="margin:10px 0 0">Səhifə Jira-ya birbaşa qoşulmur: Jira başqa saytlardan gələn sorğuları brauzerdə bloklayır (CORS). Giriş məlumatları bu səhifəyə heç vaxt yazılmır.</p>
+  </section>
+
+  <section aria-labelledby="s2">
+    <h2 id="s2"><b>2</b> Yoxlama</h2>
+    <div class="grid4">
+      <label>Sprint adı <input type="text" id="f-name" maxlength="40" autocomplete="off"></label>
+      <label>Başlama <input type="date" id="f-start"></label>
+      <label>Bitmə <input type="date" id="f-end"></label>
+      <label>Bu gün (tempo hesabı üçün) <input type="date" id="f-today"></label>
+    </div>
+    <p class="muted" style="margin:6px 0 0">Boş buraxılan sahələr Jira-dan avtomatik götürülür.</p>
+    <div id="problems"></div>
+    <div class="chips" id="chips"></div>
+    <div class="tw"><table id="tasks" aria-label="Cihaza göndəriləcək task-lar"></table></div>
+    <details><summary>cihaza gedən sprint.json</summary><pre id="json-sprint">—</pre></details>
+    <details>
+      <summary>alerts.json (səs xəbərdarlıqları)</summary>
+      <label style="margin-top:8px">alerts.json <textarea id="alerts" spellcheck="false"></textarea></label>
+      <div id="alerts-state"></div>
+    </details>
+    <div class="row">
+      <button id="dl-sprint" type="button">sprint.json yüklə</button>
+      <button id="dl-alerts" type="button">alerts.json yüklə</button>
+      <span class="muted">Wokwi üçün: faylları <code>data/device/</code> qovluğuna qoyub <code>buildfs</code> edin.</span>
+    </div>
+  </section>
+
+  <section aria-labelledby="s3">
+    <h2 id="s3"><b>3</b> Cihaz (Bluetooth)</h2>
+    <div id="ble-support"></div>
+    <div class="row" style="margin-top:0">
+      <button id="connect" class="primary" type="button">Cihaza qoşul</button>
+      <button id="send-sprint" type="button" disabled>sprint.json göndər</button>
+      <button id="send-alerts" type="button" disabled>alerts.json göndər</button>
+      <button id="disconnect" type="button" disabled>Ayır</button>
+    </div>
+    <p id="ble-state" class="muted" style="margin:10px 0 6px">Qoşulmayıb.</p>
+    <progress id="progress" max="100" value="0" aria-label="Göndərmə irəliləyişi"></progress>
+    <pre id="log" aria-live="polite"></pre>
+    <p class="muted" style="margin:10px 0 0">Brauzer: Chrome və ya Edge (kompüter və ya Android). Səhifə <code>https://</code> və ya <code>localhost</code> ünvanından açılmalıdır. Cihaz tərəfindəki BLE qəbuledici hələ yazılmayıb, protokol <code>docs/ble-protocol.md</code> faylındadır.</p>
+  </section>
+</main>
+<script src="convert.js"></script>
+<script src="protocol.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

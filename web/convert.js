@@ -110,6 +110,8 @@
     const issues = Array.isArray(jira) ? jira : (jira && jira.issues);
     if (!Array.isArray(issues)) return { errors: ['JSON-da "issues" siyahısı tapılmadı.'], warnings, device: null };
     if (issues.length === 0) errors.push('Sprint-də heç bir task yoxdur.');
+    if (jira && typeof jira.total === 'number' && jira.total > issues.length)
+      warnings.push(`Jira ${jira.total} task bildirir, yalnız ${issues.length} yapışdırılıb. URL-ə &startAt=${issues.length} əlavə edib qalanını da yükləyin.`);
 
     const found = detectSprint(issues) || {};
     const o = opts.sprint || {};
