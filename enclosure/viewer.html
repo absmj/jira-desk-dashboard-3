@@ -61,7 +61,7 @@
 <div class="wrap">
   <main>
     <h1>Sprint Desk Korpusu</h1>
-    <p class="sub">Prototip: Nokia 5110 ekranı, DS3231, DFPlayer Mini, ESP32-C3 SuperMini və dinamik üçün masa üstü korpus.</p>
+    <p class="sub">Prototip: 78 × 78 mm kvadrat, batareya ilə işləyir, Kanban lövhəsindən maqnitlə və ya vint ilə asılır.</p>
     <div class="stage" id="stage">
       <div class="hint">sürüşdür: fırlat · təkər: yaxınlaşdır · iki barmaq: sürüşdür</div>
     </div>
@@ -95,24 +95,26 @@
       <h2>Görünüş</h2>
       <label><span>Açılmış görünüş</span><input type="range" id="explode" min="0" max="100" value="0"></label>
       <div class="row"><span>Rentgen (daxili hissələr)</span><input type="checkbox" id="xray"></div>
+      <div class="row"><span>Kanban lövhəsi (miqyasla)</span><input type="checkbox" id="board" checked></div>
       <div class="row"><span>Avtomatik fırlanma</span><input type="checkbox" id="spin"></div>
     </section>
 
     <section>
       <h2>Ölçülər, mm</h2>
       <div class="tablewrap"><table>
-        <tr><td>Korpus (e × d × h)</td><td>104 × 70 × 62</td></tr>
-        <tr><td>Maillik bucağı</td><td>33,3°</td></tr>
-        <tr><td>Divar qalınlığı</td><td>2,4</td></tr>
+        <tr><td>Korpus (e × h × qalınlıq)</td><td>78 × 78 × 32,5</td></tr>
+        <tr><td>Divar</td><td>2,0</td></tr>
         <tr><td>Ekran pəncərəsi</td><td>34 × 24</td></tr>
         <tr><td>Ekran modulu (PCB)</td><td>45 × 45</td></tr>
-        <tr><td>Dinamik</td><td>Ø 28</td></tr>
-        <tr><td>USB-C yuvası</td><td>10 × 4</td></tr>
+        <tr><td>Batareya (yastı LiPo)</td><td>≈ 50 × 34 × 10</td></tr>
+        <tr><td>Dinamik</td><td>Ø 20</td></tr>
+        <tr><td>USB-C yuvaları</td><td>2 × (10 × 4)</td></tr>
         <tr><td>microSD yuvası</td><td>15 × 3</td></tr>
-        <tr><td>Lent yuvaları</td><td>60 × 9 / 60 × 12</td></tr>
+        <tr><td>Maqnit yuvaları</td><td>4 × Ø10,2 × 3,2</td></tr>
+        <tr><td>Lent yuvaları</td><td>58 × 6</td></tr>
       </table></div>
-      <p class="note">Komponent ölçüləri tipik qiymətlərdir, sizin modulları ölçməmişəm. Çapdan əvvəl kumpasla yoxlayın.</p>
-      <p class="small">Çap faylları: <code>enclosure/stl/</code> (shell, base, inlays). Lent yuvaları 0,6 mm dərinlikdədir: stiker yapışdırın və ya inlays hissəsini marka rəngində çap edin.</p>
+      <p class="note">Komponent ölçüləri tipik qiymətlərdir, sizin modulları ölçməmişəm. Batareya, dinamik və maqnit alandan sonra kumpasla yoxlayın.</p>
+      <p class="small">Asılma: arxa qapaqda 4 maqnit (maqnitli lövhə) və açar yarığı (vint). Çap faylları: <code>enclosure/stl/</code> (body, lid, inlays). Lent yuvaları 0,6 mm dərinlikdədir: stiker yapışdırın və ya inlays hissəsini marka rəngində çap edin.</p>
     </section>
   </aside>
 </div>
@@ -122,11 +124,12 @@
 <script>
 (function () {
   'use strict';
-  // Same numbers as enclosure/make_enclosure.py (mm). Z is up in the STL, so the model sits in a group rotated -90 deg about X.
-  const W = 104, D = 70, HF = 16, HB = 62, T = 2.4;
-  const THETA = Math.atan2(HB - HF, D);
-  const DISPLAY_S = 44, WIN_W = 34, WIN_H = 24, LABEL_W = 60, GAP = 0.2, LABEL_DEPTH = 0.6;
-  const LABELS = { top: { s: 76, h: 9 }, low: { s: 11, h: 12 } };
+  // Same numbers as enclosure/make_enclosure.py (mm). Model axes: Z = 0 is the front face, Z grows toward the back,
+  // Y up. X(u) turns "distance from the viewer's left edge" into model X (the model is later rotated 180 deg about Y).
+  const S = 78, T = 2, FRONT_T = 2, BODY_D = 28, LID_T = 4.5, TOTAL = BODY_D + LID_T;
+  const X = (u) => S - u;
+  const DISP_V = 39, GAP = 0.2, LABEL_DEPTH = 0.6;
+  const LABELS = { top: { u: 39, v: 70.5, w: 58, h: 6 }, low: { u: 39, v: 7.5, w: 58, h: 6 } };
 
   const stage = document.getElementById('stage');
   const state = { accent: '#2f6fdc', shell: '#e8e7e2', top: 'BANK RESPUBLIKA', low: 'RETAIL LOAN TEAM', logo: null };
@@ -136,48 +139,39 @@
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   stage.insertBefore(renderer.domElement, stage.firstChild);
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(32, 4 / 3, 1, 2000);
+  const camera = new THREE.PerspectiveCamera(30, 4 / 3, 1, 3000);
   const controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
-  controls.target.set(0, 0, 22);   // three.js coordinates (Y up) -> set below after centring
+  controls.autoRotateSpeed = 1.2;
 
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x778088, 0.85));
-  const key = new THREE.DirectionalLight(0xffffff, 0.9); key.position.set(120, 200, 140); scene.add(key);
-  const rim = new THREE.DirectionalLight(0xffffff, 0.35); rim.position.set(-160, 80, -120); scene.add(rim);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x778088, 0.9));
+  const key = new THREE.DirectionalLight(0xffffff, 0.85); key.position.set(120, 180, 220); scene.add(key);
+  const rim = new THREE.DirectionalLight(0xffffff, 0.3); rim.position.set(-160, 60, -120); scene.add(rim);
 
-  // STL frame (Z up) -> three frame (Y up); centred on the footprint.
+  // model space -> centred, front facing the camera (+Z)
   const root = new THREE.Group();
-  root.rotation.x = -Math.PI / 2;
-  root.position.set(-W / 2, 0, D / 2);
+  root.rotation.y = Math.PI;
   scene.add(root);
+  const model = new THREE.Group();
+  model.position.set(-S / 2, -S / 2, -TOTAL / 2);
+  root.add(model);
 
   const mats = {
-    shell: new THREE.MeshStandardMaterial({ color: state.shell, roughness: 0.62, metalness: 0.0, transparent: true, opacity: 1 }),
-    base: new THREE.MeshStandardMaterial({ color: state.shell, roughness: 0.7 }),
-    pcb: new THREE.MeshStandardMaterial({ color: 0x1d6b4f, roughness: 0.5 }),
+    shell: new THREE.MeshStandardMaterial({ color: state.shell, roughness: 0.62, transparent: true, opacity: 1 }),
+    lid: new THREE.MeshStandardMaterial({ color: state.shell, roughness: 0.7 }),
+    inlay: new THREE.MeshStandardMaterial({ color: state.accent, roughness: 0.55 }),
+    pcbGreen: new THREE.MeshStandardMaterial({ color: 0x1d6b4f, roughness: 0.5 }),
     pcbBlue: new THREE.MeshStandardMaterial({ color: 0x1f4f9e, roughness: 0.5 }),
+    pcbRed: new THREE.MeshStandardMaterial({ color: 0xa8322c, roughness: 0.5 }),
     black: new THREE.MeshStandardMaterial({ color: 0x15181a, roughness: 0.6 }),
     metal: new THREE.MeshStandardMaterial({ color: 0xb9bec2, roughness: 0.35, metalness: 0.8 }),
+    battery: new THREE.MeshStandardMaterial({ color: 0x8c93a6, roughness: 0.45 }),
   };
 
-  function slopeGroup() {            // local x = width, y = up the slope, z = out of the face
-    const g = new THREE.Group();
-    g.position.set(0, 0, HF);
-    g.rotation.x = THETA;
-    return g;
-  }
-  function addBox(parent, w, h, d, mat, x, y, z) {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
-    m.position.set(x, y, z);
-    parent.add(m);
-    return m;
-  }
+  const g = { body: new THREE.Group(), disp: new THREE.Group(), l1: new THREE.Group(), bat: new THREE.Group(), lid: new THREE.Group() };
+  Object.values(g).forEach((grp) => model.add(grp));
+  g.lid.position.z = BODY_D;   // lid mesh is modelled with its inner face at z = 0
 
-  // ---- parts ------------------------------------------------------------------------------------------
-  const parts = { shell: new THREE.Group(), base: new THREE.Group(), inside: new THREE.Group(), display: slopeGroup(), labels: slopeGroup() };
-  root.add(parts.shell, parts.base, parts.inside, parts.display, parts.labels);
-
-  // The generator writes each printable part as STL (for the printer) and as compact JSON (for this page).
   function loadMesh(url, mat, group) {
     fetch(url).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }).then((d) => {
       let geo = new THREE.BufferGeometry();
@@ -194,12 +188,20 @@
       stage.appendChild(msg);
     });
   }
-  loadMesh('stl/shell.json', mats.shell, parts.shell);
-  loadMesh('stl/base.json', mats.base, parts.base);
+  loadMesh('stl/body.json', mats.shell, g.body);
+  loadMesh('stl/lid.json', mats.lid, g.lid);
 
-  // Display module: PCB behind the window + a 84x48 pixel screen.
-  addBox(parts.display, 45, 45, 1.6, mats.pcbBlue, W / 2, DISPLAY_S, -T - 1.0);
-  addBox(parts.display, 40, 30, 1.4, mats.black, W / 2, DISPLAY_S, -T - 0.1);
+  // box by viewer-left offsets: u0..u1 across, v0..v1 up, z0..z1 deep
+  function ubox(group, mat, u0, u1, v0, v1, z0, z1) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(u1 - u0, v1 - v0, z1 - z0), mat);
+    m.position.set(X((u0 + u1) / 2), (v0 + v1) / 2, (z0 + z1) / 2);
+    group.add(m);
+    return m;
+  }
+
+  // ---- display module: PCB + 84x48 pixel screen --------------------------------------------------------------
+  ubox(g.disp, mats.pcbBlue, 39 - 22.5, 39 + 22.5, DISP_V - 22.5, DISP_V + 22.5, FRONT_T, FRONT_T + 1.6);
+  ubox(g.disp, mats.black, 39 - 20, 39 + 20, DISP_V - 14, DISP_V + 14, FRONT_T - 0.8, FRONT_T);
 
   const lcd = document.createElement('canvas'); lcd.width = 84; lcd.height = 48;
   (function drawLcd() {
@@ -217,47 +219,48 @@
   })();
   const lcdTex = new THREE.CanvasTexture(lcd);
   lcdTex.magFilter = THREE.NearestFilter; lcdTex.minFilter = THREE.NearestFilter;
-  const screen = new THREE.Mesh(new THREE.PlaneGeometry(30, 17.14), new THREE.MeshBasicMaterial({ map: lcdTex }));
-  screen.position.set(W / 2, DISPLAY_S, -T + 0.7);   // just in front of the black glass
-  parts.display.add(screen);
+  // planes face -Z in model space (toward the viewer after the root rotation); two half-turns about Y cancel, so text reads normally
+  function facePlane(w, h, tex, v, u, z) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex }));
+    m.rotation.y = Math.PI;
+    m.position.set(X(u), v, z);
+    return m;
+  }
+  g.body.add(facePlane(30, 17.14, lcdTex, DISP_V, 39, FRONT_T - 0.85));
 
-  // Brand labels sit in the pockets: accent plate + text (+ optional logo).
+  // ---- brand labels: accent plate sitting in the pocket + a text plane in front of it ------------------------
   const labelTex = {};
-  const labelMesh = {};
-  function makeLabel(key) {
-    const L = LABELS[key];
-    const w = LABEL_W - 2 * GAP, h = L.h - 2 * GAP;
-    const cv = document.createElement('canvas'); cv.width = 1200; cv.height = Math.round(1200 * h / w);
+  function makeLabel(k) {
+    const L = LABELS[k], w = L.w - 2 * GAP, h = L.h - 2 * GAP;
+    ubox(g.body, mats.inlay, L.u - w / 2, L.u + w / 2, L.v - h / 2, L.v + h / 2, 0.02, LABEL_DEPTH);
+    const cv = document.createElement('canvas'); cv.width = 1160; cv.height = Math.round(1160 * h / w);
     const tex = new THREE.CanvasTexture(cv); tex.anisotropy = 4;
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, LABEL_DEPTH),
-      [mats.black, mats.black, mats.black, mats.black, new THREE.MeshStandardMaterial({ map: tex, roughness: 0.55 }), mats.black]);
-    mesh.position.set(W / 2, L.s, -LABEL_DEPTH / 2 + 0.02);
-    parts.labels.add(mesh);
-    labelTex[key] = { cv, tex }; labelMesh[key] = mesh;
+    g.body.add(facePlane(w, h, tex, L.v, L.u, -0.01));
+    labelTex[k] = { cv, tex };
   }
   makeLabel('top'); makeLabel('low');
 
   function onAccent(hex) {            // white or near-black text, whichever reads better
-    const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
-    return (0.299 * r + 0.587 * g + 0.114 * b) > 160 ? '#101417' : '#ffffff';
+    const n = parseInt(hex.slice(1), 16), r = n >> 16, gg = (n >> 8) & 255, b = n & 255;
+    return (0.299 * r + 0.587 * gg + 0.114 * b) > 160 ? '#101417' : '#ffffff';
   }
-  function drawLabel(key) {
-    const { cv, tex } = labelTex[key];
+  function drawLabel(k) {
+    const { cv, tex } = labelTex[k];
     const c = cv.getContext('2d');
     c.fillStyle = state.accent; c.fillRect(0, 0, cv.width, cv.height);
     c.fillStyle = onAccent(state.accent);
     c.textBaseline = 'middle'; c.textAlign = 'center';
-    let text = (key === 'top' ? state.top : state.low).toLocaleUpperCase('az');
-    let x = cv.width / 2, avail = cv.width * 0.9;
-    if (key === 'top' && state.logo) {
-      const lh = cv.height * 0.72, lw = lh * (state.logo.width / state.logo.height);
-      c.drawImage(state.logo, cv.width * 0.04, (cv.height - lh) / 2, lw, lh);
-      x = cv.width * 0.04 + lw + (cv.width - cv.width * 0.04 - lw) / 2;
-      avail = cv.width - cv.width * 0.08 - lw;
+    const text = (k === 'top' ? state.top : state.low).toLocaleUpperCase('az');
+    let x = cv.width / 2, avail = cv.width * 0.92;
+    if (k === 'top' && state.logo) {
+      const lh = cv.height * 0.74, lw = lh * (state.logo.width / state.logo.height);
+      c.drawImage(state.logo, cv.width * 0.03, (cv.height - lh) / 2, lw, lh);
+      x = cv.width * 0.03 + lw + (cv.width * 0.97 - cv.width * 0.03 - lw) / 2;
+      avail = cv.width * 0.94 - lw;
     }
-    let size = cv.height * 0.58;
+    let size = cv.height * 0.6;
     c.font = `800 ${size}px Archivo, system-ui, sans-serif`;
-    while (c.measureText(text).width > avail && size > 12) { size -= 2; c.font = `800 ${size}px Archivo, system-ui, sans-serif`; }
+    while (c.measureText(text).width > avail && size > 10) { size -= 2; c.font = `800 ${size}px Archivo, system-ui, sans-serif`; }
     c.fillText(text, x, cv.height / 2 + size * 0.04);
     tex.needsUpdate = true;
   }
@@ -265,45 +268,67 @@
   drawLabels();
   if (document.fonts && document.fonts.load) document.fonts.load('800 40px Archivo').then(drawLabels).catch(function () {});
 
-  // Internal parts, in STL coordinates (x width, y depth, z up). Placeholders: sizes are typical values.
-  addBox(parts.inside, 38, 22, 1.6, mats.pcb, 34, 22, 4);               // DS3231
-  addBox(parts.inside, 20, 10, 6, mats.black, 34, 18, 7.8);                              // battery holder
-  addBox(parts.inside, 21, 21, 1.6, mats.pcbBlue, 14, 30, 5.7);                          // DFPlayer Mini
-  addBox(parts.inside, 12, 12, 2.2, mats.metal, 8, 30, 7.4);                             // its SD socket
-  addBox(parts.inside, 18, 22.5, 1.2, mats.pcb, 30, D - T - 12, 8.5);                    // ESP32-C3 SuperMini
-  addBox(parts.inside, 9, 7.5, 3.2, mats.metal, 30, D - T - 3.8, 10.6);                  // USB-C
-  const spk = new THREE.Mesh(new THREE.CylinderGeometry(14, 14, 4.5, 40), mats.black);
-  spk.rotation.z = Math.PI / 2;
-  spk.position.set(W - T - 2.4, 42, 22);
-  parts.inside.add(spk);
+  // ---- inside: layer 1 (z 9.5-16.5): four small boards; layer 2 (z 17-27): battery ----------------------------------
+  ubox(g.l1, mats.pcbGreen, 8, 29, 42, 63, 10, 11.6);             // DFPlayer Mini
+  ubox(g.l1, mats.metal, 4, 14, 48, 58, 11.6, 13.6);              // its microSD socket, toward the left wall
+  ubox(g.l1, mats.pcbBlue, 31, 69, 42, 64, 9.5, 11.1);            // DS3231
+  ubox(g.l1, mats.black, 38, 58, 47, 59, 11.1, 16.5);             // CR2032 holder
+  ubox(g.l1, mats.pcbGreen, 12, 30, 2.2, 24.7, 11, 12.2);         // ESP32-C3 SuperMini
+  ubox(g.l1, mats.metal, 16.5, 25.5, 2.2, 9.7, 12.2, 15.2);       // its USB-C
+  ubox(g.l1, mats.pcbRed, 40, 57, 2.2, 30, 11, 12.6);             // TP4056 charger
+  ubox(g.l1, mats.metal, 44, 53, 2.2, 9.7, 12.6, 15.8);           // its USB-C
+  ubox(g.bat, mats.battery, 14, 64, 14, 48, 17, 27);              // flat LiPo, e.g. 103450
+  const spk = new THREE.Mesh(new THREE.CylinderGeometry(10, 10, 4, 40), mats.black);
+  spk.rotation.z = Math.PI / 2;                                   // axis along X, against the viewer-right wall
+  spk.position.set(T + 2, 45, 14);
+  g.body.add(spk);
 
-  // ---- interaction -------------------------------------------------------------------------------------------
+  // ---- Kanban board backdrop at real scale ---------------------------------------------------------------------------
+  const boardCv = document.createElement('canvas'); boardCv.width = 1440; boardCv.height = 900;
+  (function drawBoard() {
+    const c = boardCv.getContext('2d');
+    c.fillStyle = '#f2f4f5'; c.fillRect(0, 0, 1440, 900);
+    c.strokeStyle = '#b8c0c4'; c.lineWidth = 3;
+    for (let i = 1; i < 3; i++) { c.beginPath(); c.moveTo(i * 480, 0); c.lineTo(i * 480, 900); c.stroke(); }
+    c.fillStyle = '#5d676c'; c.font = '700 34px Archivo, sans-serif'; c.textAlign = 'center';
+    ['GÖRÜLƏCƏK', 'İCRADA', 'TAMAMLANDI'].forEach((t, i) => c.fillText(t, i * 480 + 240, 60));
+    const notes = [['#ffe27a', 0, 0], ['#ffe27a', 0, 1], ['#9fd8ff', 1, 0], ['#ffb3a7', 1, 1], ['#b9e6a5', 2, 0], ['#b9e6a5', 2, 1], ['#b9e6a5', 2, 2]];
+    notes.forEach(([col, ci, ri]) => {
+      const x = ci * 480 + 80 + (ri % 2) * 18, y = 110 + ri * 190;
+      c.fillStyle = 'rgba(0,0,0,.12)'; c.fillRect(x + 5, y + 6, 300, 150);
+      c.fillStyle = col; c.fillRect(x, y, 300, 150);
+      c.fillStyle = 'rgba(0,0,0,.28)'; c.fillRect(x + 24, y + 38, 200, 8); c.fillRect(x + 24, y + 66, 240, 8); c.fillRect(x + 24, y + 94, 150, 8);
+    });
+  })();
+  const boardMesh = new THREE.Mesh(new THREE.PlaneGeometry(288, 180), new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(boardCv), roughness: 0.9 }));
+  boardMesh.position.set(-70, -20, -TOTAL / 2 - 0.2);      // device sits at the top of the IN PROGRESS column's right edge
+  scene.add(boardMesh);
+  if (document.fonts && document.fonts.load) document.fonts.load('700 34px Archivo').catch(function () {});
+
+  // ---- interaction ---------------------------------------------------------------------------------------------------------
   const el = (id) => document.getElementById(id);
-  let explode = 0;
-  function applyExplode() {
-    const e = explode / 100;
-    parts.base.position.set(0, 0, -40 * e);
-    parts.shell.position.set(0, 0, 55 * e);
-    parts.labels.position.set(0, 0, HF + 55 * e);            // labels travel with the shell
-    // the display module slides back along the face normal (inward) and stays at its height
-    parts.display.position.set(0, 30 * e * Math.sin(THETA), HF - 30 * e * Math.cos(THETA));
+  function applyExplode(v) {
+    const e = v / 100;   // everything moves toward the viewer; the lid stays on the board
+    g.body.position.z = -90 * e;
+    g.disp.position.z = -65 * e;
+    g.l1.position.z = -38 * e;
+    g.bat.position.z = -18 * e;
   }
-
-  el('explode').addEventListener('input', (ev) => { explode = +ev.target.value; applyExplode(); });
+  el('explode').addEventListener('input', (ev) => applyExplode(+ev.target.value));
   el('xray').addEventListener('change', (ev) => {
-    mats.shell.opacity = ev.target.checked ? 0.22 : 1;
+    mats.shell.opacity = ev.target.checked ? 0.2 : 1;
     mats.shell.depthWrite = !ev.target.checked;
     mats.shell.needsUpdate = true;
   });
+  el('board').addEventListener('change', (ev) => { boardMesh.visible = ev.target.checked; });
   el('spin').addEventListener('change', (ev) => { controls.autoRotate = ev.target.checked; });
-  controls.autoRotateSpeed = 1.2;
 
   el('t-top').addEventListener('input', (ev) => { state.top = ev.target.value; drawLabel('top'); });
   el('t-low').addEventListener('input', (ev) => { state.low = ev.target.value; drawLabel('low'); });
-  el('accent').addEventListener('input', (ev) => { state.accent = ev.target.value; drawLabels(); });
+  el('accent').addEventListener('input', (ev) => { state.accent = ev.target.value; mats.inlay.color.set(state.accent); drawLabels(); });
   el('shells').addEventListener('click', (ev) => {
     const b = ev.target.closest('button'); if (!b) return;
-    state.shell = b.dataset.c; mats.shell.color.set(state.shell); mats.base.color.set(state.shell);
+    state.shell = b.dataset.c; mats.shell.color.set(state.shell); mats.lid.color.set(state.shell);
   });
   el('logo').addEventListener('change', (ev) => {
     const f = ev.target.files && ev.target.files[0];
@@ -317,18 +342,10 @@
     reader.readAsDataURL(f);
   });
 
-  // camera presets (three.js coordinates: y up, model centred on x/z)
-  const cy = 28;
-  const VIEWS = {
-    iso:   [165, 135, 215],
-    front: [0, 60, 260],
-    side:  [270, 50, 0],
-    top:   [0, 300, 1],
-    back:  [0, 70, -260],
-  };
+  const VIEWS = { iso: [150, 95, 295], front: [0, 0, 380], side: [380, 30, 0], top: [0, 380, 1], back: [0, 30, -380] };
   function setView(name) {
     const v = VIEWS[name]; camera.position.set(v[0], v[1], v[2]);
-    controls.target.set(0, cy, 0); controls.update();
+    controls.target.set(0, 0, 0); controls.update();
   }
   document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
   setView('iso');
