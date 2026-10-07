@@ -102,6 +102,25 @@
     return diff > tol ? 'ahead' : diff < -tol ? 'behind' : 'onTrack';
   }
 
+  // ---- estimates ------------------------------------------------------------------------------------
+  // Story points live in a site-specific custom field (customfield_10016 on most Jira Cloud sites);
+  // the time estimate is the standard field timeoriginalestimate (seconds).
+  function numeric(v) { return typeof v === 'number' && isFinite(v) && v >= 0 ? v : null; }
+  function pickEstimate(issues, mode) {
+    const has = (name) => issues.some((is) => numeric(is.fields && is.fields[name]) !== null);
+    let field = null;
+    if (mode && mode !== 'auto') field = mode;
+    else if (has('customfield_10016')) field = 'customfield_10016';
+    else if (has('timeoriginalestimate')) field = 'timeoriginalestimate';
+    if (!field) return { field: null, unit: '', of: () => null };
+    const time = field === 'timeoriginalestimate' || field === 'aggregatetimeoriginalestimate';
+    return {
+      field, unit: time ? 'saat' : 'SP',
+      of: (f) => { const v = numeric(f && f[field]); return v === null ? null : (time ? v / 3600 : v); },
+    };
+  }
+  const round1 = (x) => Math.round(x * 10) / 10;
+
   // ---- main ------------------------------------------------------------------------------
   function convert(jira, opts) {
     opts = opts || {};
@@ -113,7 +132,9 @@
     if (jira && typeof jira.total === 'number' && jira.total > issues.length)
       warnings.push(`Jira ${jira.total} task bildirir, yalnız ${issues.length} yapışdırılıb. URL-ə &startAt=${issues.length} əlavə edib qalanını da yükləyin.`);
 
-    const found = detectSprint(issues) || {};
+    const top = jira && !Array.isArray(jira) && jira.sprint && jira.sprint.name   // attached by web/proxy.js
+      ? { name: jira.sprint.name, start: dateOnly(jira.sprint.startDate), end: dateOnly(jira.sprint.endDate || jira.sprint.completeDate) } : null;
+    const found = top || detectSprint(issues) || {};
     const o = opts.sprint || {};
     const sprint = {
       name: fit(o.name || found.name || '', LIMITS.name),
@@ -125,6 +146,7 @@
     if (isNaN(dayNumber(sprint.end))) errors.push('Sprint bitmə tarixi tapılmadı: əl ilə yazın (YYYY-MM-DD).');
     if (!errors.length && dayNumber(sprint.end) < dayNumber(sprint.start)) errors.push('Bitmə tarixi başlamadan əvvəldir.');
 
+    const est = pickEstimate(issues, opts.estimateField);
     const rows = issues.map((is) => {
       const f = is.fields || {};
       const cat = categoryOf(is);
@@ -139,6 +161,7 @@
         s, cat, open, blocked,
         overdue: open && due !== '' && dayNumber(due) < dayNumber(today),
         due,
+        est: est.of(f),
       };
     });
 
@@ -167,10 +190,33 @@
       x.k.localeCompare(y.k, 'en', { numeric: true }));
     if (listed.length > LIMITS.tasks) warnings.push(`${listed.length} açıq task var, cihaza yalnız ilk ${LIMITS.tasks} göndərilir.`);
 
+    // Progress weighted by estimates when most tasks have one; otherwise by task count.
+    const estimated = rows.filter((r) => r.est !== null);
+    const totalPts = estimated.reduce((a, r) => a + r.est, 0);
+    const donePts = estimated.filter((r) => !r.open).reduce((a, r) => a + r.est, 0);
+    const coverage = total ? estimated.length / total : 0;
+    const byPoints = est.field !== null && coverage >= 0.5 && totalPts > 0;
+    const pace = byPoints ? computePace(donePts, totalPts, sprint.start, sprint.end, today)
+                          : computePace(done, total, sprint.start, sprint.end, today);
+    if (est.field === null) warnings.push('Estimate sahəsi tapılmadı (story points və ya original estimate): tempo task sayına görə hesablandı.');
+    else if (!byPoints) warnings.push(`Estimate task-ların yalnız ${estimated.length}/${total}-də var (${est.field}): tempo task sayına görə hesablandı.`);
+
+    // Data-quality checks on OPEN tasks
+    const open = rows.filter((r) => r.open);
+    const list = (arr) => arr.slice(0, 5).map((r) => r.k).join(', ') + (arr.length > 5 ? ` … (+${arr.length - 5})` : '');
+    const noEst = est.field === null ? [] : open.filter((r) => r.est === null);
+    if (noEst.length) warnings.push(`${noEst.length} açıq task-da estimate yoxdur: ${list(noEst)}`);
+    const noWho = open.filter((r) => !r.a);
+    if (noWho.length) warnings.push(`${noWho.length} açıq task-ın icraçısı yoxdur: ${list(noWho)}`);
+    const late = open.filter((r) => r.due && dayNumber(r.due) > dayNumber(sprint.end));
+    if (late.length) warnings.push(`${late.length} task-ın bitmə tarixi sprint-in sonundan sonradır: ${list(late)}`);
+    if (dayNumber(today) > dayNumber(sprint.end) && open.length) warnings.push(`Sprint bitib, amma ${open.length} açıq task qalır.`);
+    if (dayNumber(today) < dayNumber(sprint.start)) warnings.push('Sprint hələ başlamayıb.');
+
     const device = {
       v: 1,
       sprint: { name: sprint.name, start: sprint.start, end: sprint.end, done, total },
-      stats: { topAssignee, byStatus, overdue, blocked, pace: computePace(done, total, sprint.start, sprint.end, today) },
+      stats: { topAssignee, byStatus, overdue, blocked, pace },
       tasks: listed.slice(0, LIMITS.tasks).map((r) => ({ k: r.k, t: r.t, s: r.s, a: r.a })),
     };
 
@@ -181,10 +227,12 @@
     const json = JSON.stringify(device);
     if (byteLen(json) > LIMITS.file) errors.push(`Fayl çox böyükdür (${byteLen(json)} bayt, limit ${LIMITS.file}).`);
 
-    return { device: errors.length ? null : device, json: errors.length ? '' : json, errors, warnings, detected: found, today };
+    const summary = { estimateField: est.field, unit: est.unit, estimated: estimated.length, byPoints,
+                      donePoints: round1(donePts), totalPoints: round1(totalPts), unestimatedOpen: noEst.length };
+    return { device: errors.length ? null : device, json: errors.length ? '' : json, errors, warnings, detected: found, today, summary };
   }
 
-  const api = { convert, computePace, truncateUtf8, unsupportedChars, isBlocked, detectSprint, dayNumber, LIMITS };
+  const api = { convert, pickEstimate, computePace, truncateUtf8, unsupportedChars, isBlocked, detectSprint, dayNumber, LIMITS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.JiraDevice = api;
 })(typeof self !== 'undefined' ? self : this);

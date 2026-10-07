@@ -84,6 +84,56 @@ function jiraOf(k) { return { issues: Array.from({ length: k }, (_, i) => issue(
   ok(C.computePace(0, 10, '2026-10-01', '2026-10-21', '2026-09-20') === 'onTrack', 'before start');
 }
 
+// ---- estimates and checks -----------------------------------------------------------------------------
+{
+  const sp = (v) => ({ customfield_10016: v });
+  const sprintOpts = { today: '2026-10-11', sprint: { name: 'S', start: '2026-10-01', end: '2026-10-21' } };
+  const mk = (list) => ({ issues: list.map(([k, cat, extra]) => issue(k, 't' + k, cat, Object.assign({ assignee: who('A') }, extra))) });
+
+  // one big finished task: by count we look behind, by points we are ahead
+  const j = mk([['A-1', 'done', sp(13)], ['A-2', 'new', sp(1)], ['A-3', 'new', sp(1)], ['A-4', 'new', sp(1)], ['A-5', 'new', sp(1)]]);
+  const r = C.convert(j, sprintOpts);
+  ok(r.summary.estimateField === 'customfield_10016' && r.summary.unit === 'SP' && r.summary.byPoints);
+  ok(r.summary.donePoints === 13 && r.summary.totalPoints === 17);
+  ok(r.device.stats.pace === 'ahead', 'pace weighted by story points');
+  ok(r.device.sprint.done === 1 && r.device.sprint.total === 5, 'done/total stay task counts (the screen says "task")');
+  const noPts = C.convert(j, Object.assign({ estimateField: 'customfield_99999' }, sprintOpts));
+  ok(noPts.device.stats.pace === 'behind' && noPts.warnings.some((w) => w.includes('0/5')), 'unknown field -> by count + warning');
+
+  // time estimate in seconds -> hours
+  const t = C.convert(mk([['T-1', 'done', { timeoriginalestimate: 7200 }], ['T-2', 'new', { timeoriginalestimate: 3600 }]]), sprintOpts);
+  ok(t.summary.estimateField === 'timeoriginalestimate' && t.summary.unit === 'saat' && t.summary.totalPoints === 3);
+
+  // no estimate field at all
+  const none = C.convert(mk([['N-1', 'new'], ['N-2', 'done']]), sprintOpts);
+  ok(none.summary.estimateField === null && none.warnings.some((w) => w.includes('Estimate sahəsi tapılmadı')));
+
+  // low coverage -> by count, warning names the numbers
+  const low = C.convert(mk([['L-1', 'done', sp(8)], ['L-2', 'new'], ['L-3', 'new'], ['L-4', 'new']]), sprintOpts);
+  ok(!low.summary.byPoints && low.warnings.some((w) => w.includes('1/4')));
+
+  // quality checks
+  const q = C.convert({ issues: [
+    issue('Q-1', 'a', 'new', { customfield_10016: 3 }),                                                    // no assignee
+    issue('Q-2', 'b', 'indeterminate', { assignee: who('A'), duedate: '2026-11-01', customfield_10016: 2 }), // due after sprint end
+    issue('Q-3', 'c', 'new', { assignee: who('A') }),                                                       // no estimate
+  ] }, sprintOpts);
+  ok(q.warnings.some((w) => w.includes('icraçısı yoxdur') && w.includes('Q-1')));
+  ok(q.warnings.some((w) => w.includes('sonundan sonradır') && w.includes('Q-2')));
+  ok(q.warnings.some((w) => w.includes('estimate yoxdur') && w.includes('Q-3')) && q.summary.unestimatedOpen === 1);
+  const ended = C.convert(mk([['E-1', 'new', sp(1)]]), Object.assign({}, sprintOpts, { today: '2026-10-25' }));
+  ok(ended.warnings.some((w) => w.includes('Sprint bitib')));
+  const future = C.convert(mk([['F-1', 'new', sp(1)]]), Object.assign({}, sprintOpts, { today: '2026-09-20' }));
+  ok(future.warnings.some((w) => w.includes('hələ başlamayıb')));
+  const clean = C.convert(mk([['C-1', 'new', sp(1)], ['C-2', 'done', sp(1)]]), sprintOpts);
+  ok(clean.warnings.length === 0, 'a clean sprint has no warnings: ' + clean.warnings.join('|'));
+
+  // sprint attached by the proxy wins over detection inside the issues
+  const viaProxy = C.convert({ sprint: { name: 'From proxy', startDate: '2026-10-02T00:00:00Z', endDate: '2026-10-09T00:00:00Z' },
+    issues: [{ key: 'X-1', fields: { summary: 's', status: { statusCategory: { key: 'new' } }, assignee: who('A'), customfield_10016: 1 } }] }, { today: '2026-10-05' });
+  ok(viaProxy.errors.length === 0 && viaProxy.device.sprint.name === 'From proxy' && viaProxy.device.sprint.end === '2026-10-09');
+}
+
 // ---- protocol --------------------------------------------------------------------------------------
 {
   ok(P.crc32(new TextEncoder().encode('123456789')) === 0xcbf43926, 'crc32 check value');
