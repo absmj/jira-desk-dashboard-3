@@ -18,6 +18,11 @@
 //   9     DS3231 SCL   (Phase 3)   strapping pin + BOOT button; module pull-up is fine
 //   20    DFPlayer RX  (Phase 6)   ESP TX -> DFPlayer RX (through 1k resistor)
 //   21    DFPlayer TX  (Phase 6)   DFPlayer TX -> ESP RX
+//
+// Planned for the battery build (docs/battery-plan.md), all 13 broken-out GPIOs are then used:
+//   4     DS3231 INT/SQW           wake source        5   POWER / wake button (wake-capable, GPIO0-5)
+//   6     DFPlayer power switch                       7   VOL+ button (replaces the DFPlayer BUSY pin; dev buzzer pin in sim)
+//   21    VOL- button              replaces DFPlayer TX -> ESP RX: no feedback from the player, track length comes from a timer
 //   18/19 USB D-/D+                reserved for native USB, never used
 
 namespace pins {

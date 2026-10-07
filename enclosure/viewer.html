@@ -112,6 +112,8 @@
         <tr><td>microSD yuvası</td><td>15 × 3</td></tr>
         <tr><td>Maqnit yuvaları</td><td>4 × Ø10,2 × 3,2</td></tr>
         <tr><td>Lent yuvaları</td><td>58 × 6</td></tr>
+        <tr><td>Düymələr (yuxarı kənar)</td><td>POWER, VOL−, VOL+</td></tr>
+        <tr><td>Batareya yuvası</td><td>50 × 34 × 10 (halqa + 3 qabırğa)</td></tr>
       </table></div>
       <p class="note">Komponent ölçüləri tipik qiymətlərdir, sizin modulları ölçməmişəm. Batareya, dinamik və maqnit alandan sonra kumpasla yoxlayın.</p>
       <p class="small">Asılma: arxa qapaqda 4 maqnit (maqnitli lövhə) və açar yarığı (vint). Çap faylları: <code>enclosure/stl/</code> (body, lid, inlays). Lent yuvaları 0,6 mm dərinlikdədir: stiker yapışdırın və ya inlays hissəsini marka rəngində çap edin.</p>
@@ -278,6 +280,16 @@
   ubox(g.l1, mats.pcbRed, 40, 57, 2.2, 30, 11, 12.6);             // TP4056 charger
   ubox(g.l1, mats.metal, 44, 53, 2.2, 9.7, 12.6, 15.8);           // its USB-C
   ubox(g.bat, mats.battery, 14, 64, 14, 48, 17, 27);              // flat LiPo, e.g. 103450
+  // keypad on the top edge: strip + three tall-plunger tact switches (POWER recessed, VOL-/VOL+ proud)
+  const BTN_Z = 14.1, STRIP_TOP = S - T - 8, BODY_H = 3.5;
+  ubox(g.l1, mats.pcbGreen, 12, 66, STRIP_TOP - 1.6, STRIP_TOP, BTN_Z - 8, BTN_Z + 8);
+  [{ u: 18, H: 9 }, { u: 46, H: 11 }, { u: 60, H: 11 }].forEach((b) => {
+    ubox(g.l1, mats.metal, b.u - 3, b.u + 3, STRIP_TOP, STRIP_TOP + BODY_H, BTN_Z - 3, BTN_Z + 3);
+    const len = b.H - BODY_H;
+    const pl = new THREE.Mesh(new THREE.CylinderGeometry(1.75, 1.75, len, 24), mats.black);
+    pl.position.set(X(b.u), STRIP_TOP + BODY_H + len / 2, BTN_Z);
+    g.l1.add(pl);
+  });
   const spk = new THREE.Mesh(new THREE.CylinderGeometry(10, 10, 4, 40), mats.black);
   spk.rotation.z = Math.PI / 2;                                   // axis along X, against the viewer-right wall
   spk.position.set(T + 2, 45, 14);

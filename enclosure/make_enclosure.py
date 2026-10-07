@@ -16,12 +16,15 @@ Coordinates (mm), in PRINT orientation:
 Parts
   body.stl    front plate + walls: display window, 2 label pockets, speaker grille (viewer-right wall),
               two USB-C slots (bottom wall: programming + charging), microSD slot (viewer-left wall),
-              4 screw posts
+              4 screw posts, battery cradle (ring + 3 ribs), 3 button frames and holes in the TOP wall
+              (POWER, VOL-, VOL+), engraved + / - / power marks
   lid.stl     back plate, printed inner face down: countersunk screws, 4 magnet pockets, keyhole
   inlays.stl  two thin plates that fill the label pockets (print in the brand colour)
 
 Inside, behind the display, parts are stacked in two layers (front to back):
   display PCB + header | layer 1: DS3231, DFPlayer Mini | layer 2: LiPo battery, ESP32-C3 SuperMini, TP4056
+Buttons: three 6x6 mm tact switches with a LONG plunger (no printed caps) sit on a small keypad strip
+(perfboard) screwed to the underside of three frames. They are pressed from the top edge while the device hangs.
 EVERY component size below is a typical value from memory, NOT measured from your parts.
 Measure the real modules with calipers and edit the numbers before printing.
 """
@@ -81,6 +84,29 @@ MAG_POS = [(20.0, 20.0), (58.0, 20.0), (20.0, 52.0), (58.0, 52.0)]   # (u, v)
 KEY_HEAD_D, KEY_SLOT_W = 9.0, 4.5
 KEY_U, KEY_V, KEY_SLOT_LEN = 39.0, 64.0, 4.0
 
+# ---- battery cradle (flat LiPo, e.g. 103450 = 10 x 34 x 50 mm; measure yours) ------------------------------------
+BAT = dict(u0=14.0, u1=64.0, v0=14.0, v1=48.0, z0=17.0, z1=27.0)   # battery envelope (u, v, z)
+BAT_GAP, BAT_WALL, BAT_Z_TOP = 0.6, 1.2, 27.4                        # clearance, ring thickness, ring top (lid at 28)
+BAT_RIBS_U = (33.5, 36.5)                                            # rib to the bottom wall (between the two USB-C connectors)
+BAT_SIDE_RIB_V = (29.0, 32.0)                                        # ribs to the side walls
+
+# ---- buttons: top wall, three 6x6 tact switches with long plungers -----------------------------------------------
+BTN_Z = 14.1                  # depth of the button axes
+BTN_FRAME = 12.0              # frame outer size (x and z)
+BTN_POCKET = 6.4              # switch body pocket (x and z)
+BTN_HOLE = 4.2                # plunger hole (plunger is about 3.5 mm)
+BTN_STRIP_TOP = S - T - 8.0   # y of the keypad strip's top face = frame underside = switch body bottom (68.0)
+BTN_BODY_H = 3.5              # switch body height without plunger
+BTN_CEIL = BTN_STRIP_TOP + BTN_BODY_H + 0.5   # underside of the frame ceiling (72.0)
+BTN_PILOT_D = 1.8             # pilot hole for an M2 self-tapping screw holding the strip
+BUTTONS = {                   # u = distance from the viewer's left edge; H = total switch height from the strip
+    'pwr': dict(u=18.0, H=9.0, label='power'),     # tip ends 1 mm below the surface, inside a counterbore (hard to press by accident)
+    'vdn': dict(u=46.0, H=11.0, label='minus'),    # tip 1 mm above the surface
+    'vup': dict(u=60.0, H=11.0, label='plus'),
+}
+PWR_CBORE_D, PWR_CBORE_DEPTH = 8.0, 0.6
+MARK_Z, MARK_DEPTH = BTN_Z + 8.9, 0.4
+
 POST_OFF = T + 3.8
 POSTS = [(X(POST_OFF), POST_OFF), (X(S - POST_OFF), POST_OFF),
          (X(POST_OFF), S - POST_OFF), (X(S - POST_OFF), S - POST_OFF)]
@@ -93,6 +119,15 @@ def box(x0, x1, y0, y1, z0, z1):
 
 def cyl_z(x, y, z0, z1, d, d2=None):
     return Manifold.cylinder(z1 - z0, d / 2, (d2 if d2 is not None else d) / 2, R_SEG).translate([x, y, z0])
+
+
+def cyl_y(x, y0, y1, z, d):
+    """Cylinder along Y from y0 to y1, centred on (x, z)."""
+    return Manifold.cylinder(y1 - y0, d / 2, d / 2, R_SEG).rotate([-90, 0, 0]).translate([x, y0, z])
+
+
+def ubox(u0, u1, v0, v1, z0, z1):
+    return box(X(u1), X(u0), v0, v1, z0, z1)
 
 
 def cyl_x(x0, x1, y, z, d):
@@ -116,6 +151,52 @@ def label_cut(L):
     return box(x - L['w'] / 2, x + L['w'] / 2, L['v'] - L['h'] / 2, L['v'] + L['h'] / 2, -1, LABEL_DEPTH)
 
 
+def battery_cradle():
+    b = BAT
+    a = BAT_GAP
+    u0, u1, v0, v1 = b['u0'] - a, b['u1'] + a, b['v0'] - a, b['v1'] + a
+    z0 = b['z0']
+    ring = (ubox(u0 - BAT_WALL, u1 + BAT_WALL, v0 - BAT_WALL, v1 + BAT_WALL, z0, BAT_Z_TOP)
+            - ubox(u0, u1, v0, v1, z0 - 1, BAT_Z_TOP + 1))
+    ribs = [ubox(BAT_RIBS_U[0], BAT_RIBS_U[1], T - 0.1, v0 - BAT_WALL + 0.1, z0, BAT_Z_TOP),          # down to the bottom wall
+            ubox(T - 0.1, u0 - BAT_WALL + 0.1, BAT_SIDE_RIB_V[0], BAT_SIDE_RIB_V[1], z0, BAT_Z_TOP),   # to the viewer-left wall
+            ubox(u1 + BAT_WALL - 0.1, S - T + 0.1, BAT_SIDE_RIB_V[0], BAT_SIDE_RIB_V[1], z0, BAT_Z_TOP)]
+    return ring + union(ribs)
+
+
+def button_frames():
+    """Solid frames hanging from the top wall (they stand on the front plate so they print without support)."""
+    out = []
+    for b in BUTTONS.values():
+        x = X(b['u'])
+        out.append(box(x - BTN_FRAME / 2, x + BTN_FRAME / 2, BTN_STRIP_TOP, S - T + 0.1, FRONT_T - 0.1, BTN_Z + BTN_FRAME / 2))
+    return union(out)
+
+
+def button_cuts():
+    cuts = []
+    for b in BUTTONS.values():
+        x = X(b['u'])
+        h = BTN_POCKET / 2
+        cuts.append(box(x - h, x + h, BTN_STRIP_TOP - 1, BTN_CEIL, BTN_Z - h, BTN_Z + h))        # switch pocket, open toward the strip
+        cuts.append(cyl_y(x, BTN_CEIL - 0.1, S + 1, BTN_Z, BTN_HOLE))                             # plunger hole
+        cuts.append(cyl_y(x, BTN_STRIP_TOP - 1, BTN_STRIP_TOP + 5, BTN_Z + 4.6, BTN_PILOT_D))     # M2 pilot for the strip
+        if b['label'] == 'power':
+            cuts.append(cyl_y(x, S - PWR_CBORE_DEPTH, S + 1, BTN_Z, PWR_CBORE_D))
+        # engraved symbol on the top face, farther toward the rear, so it can be found by touch / seen from above
+        y0 = S - MARK_DEPTH
+        if b['label'] == 'plus':
+            cuts += [box(x - 2.0, x + 2.0, y0, S + 1, MARK_Z - 0.4, MARK_Z + 0.4),
+                     box(x - 0.4, x + 0.4, y0, S + 1, MARK_Z - 2.0, MARK_Z + 2.0)]
+        elif b['label'] == 'minus':
+            cuts.append(box(x - 2.0, x + 2.0, y0, S + 1, MARK_Z - 0.4, MARK_Z + 0.4))
+        else:   # power symbol: ring with a gap at the top (toward the rear) and a bar inside the gap
+            ring = cyl_y(x, y0, S + 1, MARK_Z, 4.2) - cyl_y(x, y0 - 1, S + 2, MARK_Z, 3.4)
+            ring = ring - box(x - 0.5, x + 0.5, y0 - 1, S + 2, MARK_Z, MARK_Z + 3)
+            cuts += [ring, box(x - 0.4, x + 0.4, y0, S + 1, MARK_Z, MARK_Z + 2.4)]
+    return union(cuts)
+
+
 # ---- parts --------------------------------------------------------------------------------------------------------------------------
 def build_body():
     out = outline()
@@ -130,6 +211,8 @@ def build_body():
     ring = (box(cx - half - RIB_W, cx + half + RIB_W, DISP_V - half - RIB_W, DISP_V + half + RIB_W, z0, z1)
             - box(cx - half, cx + half, DISP_V - half, DISP_V + half, z0 - 1, z1 + 1))
     body = body + ring
+
+    body = body + battery_cradle() + button_frames()
 
     # speaker ring on the inside of the viewer-right wall (model X = 0 side), axis along X
     body = body + (cyl_x(T - 0.4, T + SPK_RING_H, SPK_V, SPK_Z, SPK_D + 3.2)
@@ -161,6 +244,8 @@ def build_body():
     # microSD slot (viewer-left wall = high X)
     body = body - box(S - T - 1, S + 1, SD_V - SD_SLOT[0] / 2, SD_V + SD_SLOT[0] / 2,
                       SD_Z - SD_SLOT[1] / 2, SD_Z + SD_SLOT[1] / 2)
+
+    body = body - button_cuts()
 
     for x, y in POSTS:                                           # screw holes in the posts
         body = body - cyl_z(x, y, BODY_D - POST_HOLE_DEPTH, BODY_D + 1, POST_HOLE)

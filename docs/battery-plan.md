@@ -40,6 +40,14 @@ Measure the real board with a USB power meter or a µA-capable multimeter before
 | 6 | DFPlayer power switch | plain output |
 | 7 | DFPlayer BUSY | input |
 
+**Buttons added to the enclosure (POWER, VOL-, VOL+) change this table.** The SuperMini breaks out 13 GPIOs (0-10, 20, 21)
+and all were already taken. To free two inputs for the volume buttons: drop the DFPlayer BUSY pin and the DFPlayer TX -> ESP RX line.
+Final plan: 4 DS3231 INT, 5 POWER/wake, 6 DFPlayer power switch, 7 VOL+, 21 VOL-, 20 ESP TX -> DFPlayer RX (via 1 kohm).
+Cost: no feedback from the player, so the end of a track is a timer (track length stored in `alerts.json` later), and no
+"is it busy" check before switching the DFPlayer off. GPIO21 is the default UART0 TX and prints the ROM boot log;
+a pressed VOL- at boot would fight it, harmless but worth knowing. Alternative if this hurts: one ADC pin with a resistor ladder for the two volume keys.
+The POWER button is a tact switch: it wakes/sleeps the firmware, it does not disconnect the battery (that needs a latching or slide switch).
+
 (SD is on the DFPlayer itself, the JSON files are in internal flash, so the old SD SPI pins are free.)
 
 ## Rough budget (formula, then an example with assumed numbers)
