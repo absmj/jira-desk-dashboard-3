@@ -65,8 +65,15 @@
     try { jira = JSON.parse(raw); } catch (e) {
       box.appendChild(msg('err', 'JSON oxunmadı: ' + e.message)); updateButtons(); return;
     }
+    if (jira && Array.isArray(jira.values) && !Array.isArray(jira.issues)) {
+      const act = jira.values.find((v) => v && v.state === 'active') || jira.values[0];
+      box.appendChild(msg('warn', act && act.id
+        ? `Bu sprint siyahısıdır, task-lar deyil. Aktiv sprint nömrəsi: ${act.id}. Növbəti ünvan: …/rest/agile/1.0/sprint/${act.id}/issue?maxResults=100`
+        : 'Bu sprint siyahısıdır, task-lar deyil.'));
+      updateButtons(); return;
+    }
 
-    const o = { today: $('f-today').value || isoToday(), sprint: {} };
+    const o = { estimateField: ($('f-est').value.trim() || 'auto'), today: $('f-today').value || isoToday(), sprint: {} };
     if ($('f-name').value.trim()) o.sprint.name = $('f-name').value.trim();
     if ($('f-start').value) o.sprint.start = $('f-start').value;
     if ($('f-end').value) o.sprint.end = $('f-end').value;
@@ -77,9 +84,6 @@
     }
     r.errors.forEach((e) => box.appendChild(msg('err', e)));
     r.warnings.forEach((w) => box.appendChild(msg('warn', w)));
-    if (jira && Array.isArray(jira.issues) && typeof jira.total === 'number' && jira.total > jira.issues.length) {
-      box.appendChild(msg('warn', `Jira-da ${jira.total} task var, yapışdırılan JSON-da yalnız ${jira.issues.length}. Statistika natamam olar: ünvana &startAt=${jira.issues.length} əlavə edib qalanını da götürün.`));
-    }
     if (!r.device) { updateButtons(); return; }
     result = r;
 
@@ -88,7 +92,9 @@
     const paceText = { ahead: 'qabaqdadır', onTrack: 'normaldır', behind: 'geridədir' }[s.pace];
     [['sprint', d.sprint.name], ['tarix', d.sprint.start + ' → ' + d.sprint.end], ['hazır', `${d.sprint.done}/${d.sprint.total} (${pct}%)`],
      ['görüləcək', s.byStatus.todo], ['icrada', s.byStatus.inProgress], ['gecikmiş', s.overdue], ['bloklanmış', s.blocked],
-     ['ən çox task', s.topAssignee.name ? `${s.topAssignee.name} (${s.topAssignee.count})` : '—'], ['tempo', paceText],
+     ['ən çox task', s.topAssignee.name ? `${s.topAssignee.name} (${s.topAssignee.count})` : '—'],
+     ['tempo (' + (r.summary && r.summary.byPoints ? 'estimate-ə görə' : 'task sayına görə') + ')', paceText],
+     ...(r.summary && r.summary.estimated ? [['estimate', `${r.summary.donePoints}/${r.summary.totalPoints} ${r.summary.unit}`]] : []),
     ].forEach(([k, v]) => {
       const c = document.createElement('span'); c.className = 'chip';
       const b = document.createElement('b'); b.textContent = k;
@@ -112,7 +118,7 @@
     updateButtons();
   }
 
-  ['jira', 'f-name', 'f-start', 'f-end', 'f-today'].forEach((id) => $(id).addEventListener('input', refresh));
+  ['jira', 'f-name', 'f-start', 'f-end', 'f-today', 'f-est'].forEach((id) => $(id).addEventListener('input', refresh));
   $('sample').addEventListener('click', () => { $('jira').value = JSON.stringify(sampleJira(), null, 2); refresh(); });
   $('file').addEventListener('change', (ev) => {
     const f = ev.target.files && ev.target.files[0];
@@ -120,6 +126,33 @@
     const rd = new FileReader();
     rd.onload = () => { $('jira').value = String(rd.result); refresh(); };
     rd.readAsText(f);
+  });
+
+  // ---- automatic mode: local proxy finds the active sprint from the board id -------------------------------
+  const auto = (t, kind) => { const b = $('auto-state'); b.textContent = ''; if (t) b.appendChild(msg(kind || 'ok', t)); };
+  fetch('/api/config').then((r) => (r.ok ? r.json() : Promise.reject())).then((cfg) => {
+    if (!cfg) return;
+    $('auto').hidden = false;
+    $('manual').open = false;
+    if (cfg.board) $('f-board').value = String(cfg.board);
+    if (cfg.configured === false) auto('Proksi işləyir, lakin JIRA_SITE/JIRA_EMAIL/JIRA_TOKEN təyin olunmayıb.', 'warn');
+  }).catch(() => {});
+  $('fetch').addEventListener('click', async () => {
+    const board = $('f-board').value.trim();
+    if (!/^\d+$/.test(board)) { auto('Board ID rəqəm olmalıdır.', 'err'); return; }
+    $('fetch').disabled = true; auto('Aktiv sprint axtarılır…', 'warn');
+    try {
+      const res = await fetch('/api/sprint-issues?board=' + board);
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j.error || ('HTTP ' + res.status));
+      $('jira').value = JSON.stringify({ sprint: j.sprint, total: j.total, issues: j.issues }, null, 2);
+      let t = `${j.sprint && j.sprint.name ? j.sprint.name : 'sprint'}: ${j.issues.length} task gətirildi.`;
+      if (j.multipleActive) t += ' Diqqət: board-da bir neçə aktiv sprint var, ilki seçildi.';
+      if (j.truncated) t += ' Task sayı limitə çatdı, siyahı kəsildi.';
+      auto(t, j.multipleActive || j.truncated ? 'warn' : 'ok');
+      refresh();
+    } catch (e) { auto(e.message, 'err'); }
+    $('fetch').disabled = false;
   });
 
   // ---- alerts.json -----------------------------------------------------------------------------------------------------------

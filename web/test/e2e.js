@@ -5,14 +5,21 @@ const http = require('http'), fs = require('fs'), path = require('path');
 const assert = require('assert');
 
 const ROOT = path.resolve(__dirname, '../..');
-const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.json': 'application/json' };
-const srv = http.createServer((req, res) => {
-  const p = path.join(ROOT, decodeURIComponent(req.url.split('?')[0]));
-  if (!p.startsWith(ROOT) || !fs.existsSync(p) || fs.statSync(p).isDirectory()) { res.writeHead(404); return res.end(); }
-  res.writeHead(200, { 'content-type': types[path.extname(p)] || 'application/octet-stream' });
-  fs.createReadStream(p).pipe(res);
-});
+const { createServer } = require('../proxy.js');
 
+// Mock Jira: board 7 -> active sprint 42 -> issues with story points.
+const mkIssue = (key, cat, who, sp) => ({ key, fields: { summary: 'Task ' + key, status: { name: cat, statusCategory: { key: cat === 'Done' ? 'done' : 'indeterminate' } }, assignee: who ? { displayName: who } : null, customfield_10016: sp, duedate: null, labels: [], issuelinks: [] } });
+const jira = http.createServer((req, res) => {
+  const u = new URL(req.url, 'http://x');
+  const reply = (o) => { res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
+  if (u.pathname === '/rest/agile/1.0/board/7/sprint') return reply({ values: [{ id: 42, name: 'SPRINT 24', state: 'active', startDate: '2026-10-01T05:00:00.000Z', endDate: '2026-10-18T13:00:00.000Z' }] });
+  if (u.pathname === '/rest/agile/1.0/sprint/42/issue') {
+    const all = [mkIssue('A-1', 'Done', 'Əli Məmmədov', 5), mkIssue('A-2', 'In Progress', 'Əli Məmmədov', 8), mkIssue('A-3', 'In Progress', 'Leyla Həsənova', 3), mkIssue('A-4', 'In Progress', null, null)];
+    return reply({ startAt: 0, maxResults: 50, total: all.length, issues: all });
+  }
+  res.writeHead(404); res.end('{}');
+});
+let srv;
 const MOCK = () => {
   // A fake device that speaks docs/ble-protocol.md: validates length + CRC32, then notifies [code, fileId].
   window.__received = {}; window.__corrupt = false; window.__maxWrite = 0;
@@ -46,7 +53,9 @@ const MOCK = () => {
 };
 
 (async () => {
-  await new Promise((r) => srv.listen(8790, r));
+  await new Promise((r) => jira.listen(0, '127.0.0.1', r));
+  srv = createServer({ JIRA_SITE: 'http://127.0.0.1:' + jira.address().port, JIRA_EMAIL: 'a@b.c', JIRA_TOKEN: 't' });
+  await new Promise((r) => srv.listen(8790, '127.0.0.1', r));
   const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium' });
   const p = await b.newPage({ viewport: { width: 1100, height: 1400 } });
   const errs = [];
@@ -57,7 +66,17 @@ const MOCK = () => {
   await p.goto('http://localhost:8790/web/index.html');
   await p.waitForFunction(() => window.__appReady);
 
+  assert(await p.isVisible('#auto'), 'auto block visible when the proxy is configured');
   assert(await p.isDisabled('#send-sprint'), 'send is disabled without data');
+
+  // automatic mode: board id -> active sprint -> issues, estimate-weighted
+  await p.fill('#f-board', 'abc'); await p.click('#fetch');
+  assert((await p.textContent('#auto-state')).includes('rəqəm'), 'non-numeric board rejected');
+  await p.fill('#f-board', '7'); await p.click('#fetch');
+  await p.waitForFunction(() => document.getElementById('auto-state').textContent.includes('4 task'));
+  const chips = await p.textContent('#chips');
+  assert(chips.includes('SPRINT 24') && chips.includes('estimate-ə görə') && chips.includes('5/16'), 'estimate chips: ' + chips);
+  assert((await p.textContent('#problems')).includes('estimate'), 'unestimated open task is flagged');
   await p.click('#sample');
   assert((await p.textContent('#chips')).includes('SPRINT 24'));
   assert((await p.locator('#tasks tbody tr').count()) === 7, 'seven open tasks listed');
@@ -88,5 +107,5 @@ const MOCK = () => {
 
   assert.deepStrictEqual(errs, [], 'no page errors: ' + errs.join('|'));
   console.log('web e2e: OK');
-  await b.close(); srv.close();
+  await b.close(); srv.close(); jira.close();
 })().catch((e) => { console.error(e); process.exit(1); });

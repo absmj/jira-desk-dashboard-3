@@ -83,11 +83,24 @@
 
   <section aria-labelledby="s1">
     <h2 id="s1"><b>1</b> Jira məlumatı</h2>
-    <ol class="steps">
-      <li>Jira-ya brauzerdə daxil olun. Aktiv sprint-in nömrəsini tapın: <code>https://SIZIN.atlassian.net/rest/agile/1.0/board/BOARD_ID/sprint?state=active</code></li>
-      <li>Sprint task-larını açın: <code>https://SIZIN.atlassian.net/rest/agile/1.0/sprint/SPRINT_ID/issue?maxResults=100</code></li>
-      <li>Açılan JSON-u kopyalayıb aşağıya yapışdırın (və ya fayl kimi saxlayıb seçin).</li>
-    </ol>
+    <div id="auto" hidden>
+      <p class="muted" style="margin:0 0 8px">Lokal proksi işləyir: board nömrəsini yazın, aktiv sprint və onun task-ları avtomatik tapılacaq.</p>
+      <div class="grid4">
+        <label>Board ID <input type="text" id="f-board" inputmode="numeric" pattern="[0-9]*" maxlength="9" autocomplete="off" placeholder="məs. 42"></label>
+        <label>Estimate sahəsi <input type="text" id="f-est" list="est-list" autocomplete="off" placeholder="auto"></label>
+        <datalist id="est-list"><option value="auto"><option value="customfield_10016"><option value="timeoriginalestimate"></datalist>
+      </div>
+      <div class="row"><button id="fetch" class="primary" type="button">Aktiv sprint-i tap və gətir</button></div>
+      <div id="auto-state" class="muted" aria-live="polite"></div>
+    </div>
+    <details id="manual" open>
+      <summary>Əl ilə (proksi olmadan)</summary>
+      <ol class="steps">
+        <li>Jira-ya brauzerdə daxil olun. Aktiv sprint: <code>https://SIZIN.atlassian.net/rest/agile/1.0/board/BOARD_ID/sprint?state=active</code></li>
+        <li>Sprint task-ları: <code>https://SIZIN.atlassian.net/rest/agile/1.0/sprint/SPRINT_ID/issue?maxResults=100</code></li>
+        <li>Açılan JSON-u aşağıya yapışdırın (və ya fayl seçin).</li>
+      </ol>
+    </details>
     <label>Jira JSON
       <textarea id="jira" spellcheck="false" placeholder='{"issues":[ ... ]}'></textarea>
     </label>
@@ -95,7 +108,7 @@
       <input type="file" id="file" accept=".json,application/json" aria-label="JSON faylı seçin">
       <button id="sample" type="button">Nümunə data</button>
     </div>
-    <p class="muted" style="margin:10px 0 0">Səhifə Jira-ya birbaşa qoşulmur: Jira başqa saytlardan gələn sorğuları brauzerdə bloklayır (CORS). Giriş məlumatları bu səhifəyə heç vaxt yazılmır.</p>
+    <p class="muted" style="margin:10px 0 0">Səhifə Jira-ya birbaşa qoşulmur (CORS). Avtomatik rejim üçün <code>node web/proxy.js</code> işə salın; token yalnız mühit dəyişənlərindədir və bu səhifəyə heç vaxt yazılmır.</p>
   </section>
 
   <section aria-labelledby="s2">
@@ -135,7 +148,7 @@
     <p id="ble-state" class="muted" style="margin:10px 0 6px">Qoşulmayıb.</p>
     <progress id="progress" max="100" value="0" aria-label="Göndərmə irəliləyişi"></progress>
     <pre id="log" aria-live="polite"></pre>
-    <p class="muted" style="margin:10px 0 0">Brauzer: Chrome və ya Edge (kompüter və ya Android). Səhifə <code>https://</code> və ya <code>localhost</code> ünvanından açılmalıdır. Cihaz tərəfindəki BLE qəbuledici hələ yazılmayıb, protokol <code>docs/ble-protocol.md</code> faylındadır.</p>
+    <p class="muted" style="margin:10px 0 0">Brauzer: Chrome və ya Edge (kompüter və ya Android). Səhifə <code>https://</code> və ya <code>localhost</code> ünvanından açılmalıdır. Cihaz qəbuledicisi <code>supermini</code> qurulmasındadır (Wokwi-də BLE yoxdur), protokol <code>docs/ble-protocol.md</code> faylındadır.</p>
   </section>
 </main>
 <script src="convert.js"></script>
