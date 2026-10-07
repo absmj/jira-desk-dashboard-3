@@ -38,3 +38,15 @@ g++ $WARN -I"$AJ" \
     src/app/SprintData.cpp src/app/SimClock.cpp src/app/SprintLoader.cpp src/app/AlertLoader.cpp \
     src/app/AlertEngine.cpp src/app/SampleData.cpp tools/native_tests/test_json.cpp -o "$OUT/test_json"
 "$OUT/test_json"
+
+echo
+echo "BLE receiver logic (frames come from the real web/protocol.js)"
+g++ $WARN -I"$AJ" \
+    src/app/SprintData.cpp src/app/SprintLoader.cpp src/app/AlertLoader.cpp \
+    src/ble/TransferSession.cpp src/ble/UploadApplier.cpp tools/native_tests/test_ble.cpp -o "$OUT/test_ble"
+if command -v node >/dev/null 2>&1; then
+    node tools/native_tests/gen_frames.js > "$OUT/frames.txt"
+    "$OUT/test_ble" "$OUT/frames.txt"
+else
+    "$OUT/test_ble"
+fi

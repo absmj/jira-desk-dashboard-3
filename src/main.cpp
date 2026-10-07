@@ -11,6 +11,7 @@
 #include "app/SprintData.h"
 #include "app/SprintLoader.h"
 #include "audio/BuzzerAudio.h"
+#include "ble/BleManager.h"
 #if defined(AUDIO_SIM_MP3)
 #include "audio/LittleFsCard.h"
 #include "audio/SimMp3Audio.h"
@@ -45,6 +46,7 @@ static IAudio& audio = simMp3;
 static IAudio& audio = buzzer;
 #endif
 
+static BleManager ble;  // real receiver only with -DBLE_RECEIVER (supermini); a no-op stub in the simulator
 static uint32_t lastPollMs = 0;
 
 // Boot diagnostic: where the firmware EXPECTS the filesystem, and what is actually there.
@@ -111,6 +113,8 @@ void setup() {
     // data alerts that fire right after boot while their screens are showing.
     simClock.begin(DateTime{Date{2026, 10, 4}, 9, 30, 0}, millis(), DEV_CLOCK_SPEED);
 
+    ble.begin("JiraDesk");
+
     pager.rebuild(sprint, millis());
     Serial.printf("[pager] %u pages\n", static_cast<unsigned>(pager.pageCount()));
 }
@@ -118,6 +122,13 @@ void setup() {
 void loop() {
     const uint32_t now = millis();
     audio.tick(now);
+
+    // A file received over Bluetooth was verified, stored and swapped in: refresh what depends on it.
+    switch (ble.poll(now, sprint, alerts)) {
+    case 1: pager.rebuild(sprint, now); Serial.println("[ble] new sprint.json active"); break;
+    case 2: engine.reset(); Serial.println("[ble] new alerts.json active"); break;
+    default: break;
+    }
 #if defined(AUDIO_SIM_MP3)
     uint16_t doneTrack = 0;
     if (simMp3.takeFinished(doneTrack)) {
