@@ -7,7 +7,7 @@ let checks = 0;
 const ok = (c, m) => { checks++; assert.ok(c, m); };
 
 const AUTH = 'Basic ' + Buffer.from('me@corp.test:secret').toString('base64');
-const mkIssues = (n) => Array.from({ length: n }, (_, i) => ({ key: 'P-' + (i + 1), fields: { summary: 's' + i } }));
+const mkIssues = (n) => Array.from({ length: n }, (_, i) => ({ key: 'P-' + (i + 1), fields: { summary: 's' + i, description: 'LONG TEXT '.repeat(50), comment: { total: 3 } } }));
 let mode = 'normal';
 const calls = [];
 
@@ -61,6 +61,8 @@ const get = (port, p, method = 'GET') => new Promise((resolve, reject) => {
   ok(r.json.sprint.id === 42 && r.json.sprint.name === 'SPRINT 24' && r.json.sprint.endDate.startsWith('2026-10-18'));
   ok(r.json.issues.length === 130 && r.json.total === 130 && !r.json.truncated, 'paged 50+50+30');
   ok(new Set(r.json.issues.map((i) => i.key)).size === 130, 'no duplicates across pages');
+  ok(r.json.issues.every((i) => !('description' in i.fields) && !('comment' in i.fields)), 'description and comments are stripped');
+  ok(calls.filter((c) => c.includes('/issue?')).every((c) => decodeURIComponent(c).includes('fields=*all,-description')), 'Jira is asked to leave descriptions out');
   ok(calls.filter((c) => c.includes('/issue')).length === 3, 'three issue pages');
   ok(calls[0].includes('/board/7/sprint?state=active'), 'board -> active sprint first');
 

@@ -51,6 +51,15 @@ function jiraFail(r, what) {
   return new HttpError(502, 'Jira xətası (' + what + ', HTTP ' + r.status + ')' + (detail ? ': ' + detail : ''));
 }
 
+// Ask Jira for every field except the heavy free-text ones (the "Flagged" custom field has an unknown id,
+// so a whitelist would lose it). Descriptions never reach the page or the device.
+const FIELDS = '*all,-description,-comment,-attachment,-worklog,-environment';
+const HEAVY = ['description', 'comment', 'attachment', 'worklog', 'environment'];
+function lean(issue) {
+  if (issue && issue.fields) for (const k of HEAVY) delete issue.fields[k];
+  return issue;
+}
+
 async function activeSprintIssues(cfg, board) {
   const sp = await jiraGet(cfg, `/rest/agile/1.0/board/${board}/sprint?state=active&maxResults=50`);
   if (sp.status !== 200 || !sp.json) throw jiraFail(sp, 'board ' + board);
@@ -61,12 +70,12 @@ async function activeSprintIssues(cfg, board) {
   const issues = [];
   let total = Infinity;
   while (issues.length < Math.min(total, MAX_ISSUES)) {
-    const r = await jiraGet(cfg, `/rest/agile/1.0/sprint/${sprint.id}/issue?startAt=${issues.length}&maxResults=100`);
+    const r = await jiraGet(cfg, `/rest/agile/1.0/sprint/${sprint.id}/issue?startAt=${issues.length}&maxResults=100&fields=${encodeURIComponent(FIELDS)}`);
     if (r.status !== 200 || !r.json) throw jiraFail(r, 'sprint ' + sprint.id);
     const page = r.json.issues || [];
     total = typeof r.json.total === 'number' ? r.json.total : issues.length + page.length;
     if (!page.length) break;
-    issues.push(...page);
+    issues.push(...page.map(lean));
   }
   return {
     sprint: { id: sprint.id, name: sprint.name, startDate: sprint.startDate, endDate: sprint.endDate, state: sprint.state },

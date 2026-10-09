@@ -68,7 +68,7 @@
     if (jira && Array.isArray(jira.values) && !Array.isArray(jira.issues)) {
       const act = jira.values.find((v) => v && v.state === 'active') || jira.values[0];
       box.appendChild(msg('warn', act && act.id
-        ? `Bu sprint siyahısıdır, task-lar deyil. Aktiv sprint nömrəsi: ${act.id}. Növbəti ünvan: …/rest/agile/1.0/sprint/${act.id}/issue?maxResults=100`
+        ? `Bu sprint siyahısıdır, task-lar deyil. Aktiv sprint nömrəsi: ${act.id}. Növbəti ünvan: …/rest/agile/1.0/sprint/${act.id}/issue?maxResults=100&fields=*all,-description,-comment`
         : 'Bu sprint siyahısıdır, task-lar deyil.'));
       updateButtons(); return;
     }
