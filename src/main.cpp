@@ -105,6 +105,8 @@ static void loadData() {
 
 void setup() {
     Serial.begin(115200);
+    // Native USB: the monitor reconnects after every reset, so wait (max 3 s) for it, otherwise the boot lines are lost.
+    for (uint32_t t0 = millis(); !Serial && millis() - t0 < 3000;) delay(10);
     delay(300);  // let USB CDC enumerate on real hardware
     Serial.println("[boot] Jira Desk Dashboard - Phase 2b");
 
@@ -138,6 +140,14 @@ void setup() {
 void loop() {
     const uint32_t now = millis();
     audio.tick(now);
+
+    // Heartbeat every 5 s: proves the program is running even if the monitor was opened late.
+    static uint32_t lastBeatMs = 0;
+    if (static_cast<uint32_t>(now - lastBeatMs) >= 5000) {
+        lastBeatMs = now;
+        Serial.printf("[alive] %lu s, page %u\n", static_cast<unsigned long>(now / 1000),
+                      static_cast<unsigned>(pager.pageCount()));
+    }
 
     // A file received over Bluetooth was verified, stored and swapped in: refresh what depends on it.
     switch (ble.poll(now, sprint, alerts)) {
