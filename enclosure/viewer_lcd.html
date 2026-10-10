@@ -77,9 +77,7 @@
   <aside>
     <section>
       <h2>Marka</h2>
-      <label><span>Yuxarı lent</span><input type="text" id="t-top" value="BANK RESPUBLIKA" maxlength="22"></label>
-      <label><span>Aşağı lent</span><input type="text" id="t-low" value="RETAIL LOAN TEAM" maxlength="22"></label>
-      <div class="row"><span>Marka rəngi (rəsmi HEX-i seçin)</span><input type="color" id="accent" value="#2f6fdc"></div>
+      <div class="row"><span>Marka rəngi (rəsmi HEX-i seçin)</span><input type="color" id="accent" value="#3327FF"></div>
       <div class="row"><span>Korpus rəngi</span>
         <div class="swatches" id="shells">
           <button data-c="#e8e7e2" title="Ağ" style="background:#e8e7e2"></button>
@@ -87,8 +85,7 @@
           <button data-c="#33373c" title="Qrafit" style="background:#33373c"></button>
         </div>
       </div>
-      <label><span>Loqo faylı (PNG/SVG, yuxarı lentin solunda görünür)</span><input type="file" id="logo" accept="image/*"></label>
-      <p class="small">Mən loqonu çəkmirəm: rəsmi faylı özünüz yükləyin. Rəng və mətn yalnız ilkin nümunədir.</p>
+      <p class="small">Loqo: <code>enclosure/brand/BR_digital_logo.svg</code> (sizin verdiyiniz fayl). «Retail Loan Team» yazısı Outfit SemiBold şriftindədir: loqonun hərflərinə gözlə ən yaxın pulsuz şrift; bankın rəsmi şrifti deyil. Rəng #3327FF loqo faylından götürülüb.</p>
     </section>
 
     <section>
@@ -111,7 +108,7 @@
         <tr><td>USB-C yuvaları</td><td>2 × (10 × 4)</td></tr>
         <tr><td>microSD yuvası</td><td>15 × 3</td></tr>
         <tr><td>Maqnit yuvaları</td><td>4 × Ø10,2 × 3,2</td></tr>
-        <tr><td>Lent yuvaları</td><td>62 × 8 / 66 × 7,4</td></tr>
+        <tr><td>Lent yuvaları</td><td>loqo 39,4 × 14 / yazı 48 × 4,4 (kontur, 0,6 mm)</td></tr>
         <tr><td>Düymələr (yuxarı kənar)</td><td>POWER, VOL−, VOL+</td></tr>
         <tr><td>Batareya yuvası</td><td>50 × 34 × 10 (halqa + 3 qabırğa)</td></tr>
       </table></div>
@@ -134,7 +131,7 @@
   const LABELS = { top: { u: CX, v: 48.5, w: 62, h: 8 }, low: { u: CX, v: 8.5, w: 66, h: 7.4 } };
 
   const stage = document.getElementById('stage');
-  const state = { accent: '#2f6fdc', shell: '#e8e7e2', top: 'BANK RESPUBLIKA', low: 'RETAIL LOAN TEAM', logo: null };
+  const state = { accent: '#3327FF', shell: '#e8e7e2', top: 'BANK RESPUBLIKA', low: 'RETAIL LOAN TEAM', logo: null };
 
   // ---- renderer / scene ----------------------------------------------------------------------------
   const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -223,45 +220,9 @@
   }
   g.body.add(facePlane(56, 11.5, lcdTex, MOD_V, CX, FRONT_T - 0.45));
 
-  // ---- brand labels: accent plate sitting in the pocket + a text plane in front of it ------------------------
-  const labelTex = {};
-  function makeLabel(k) {
-    const L = LABELS[k], w = L.w - 2 * GAP, h = L.h - 2 * GAP;
-    ubox(g.body, mats.inlay, L.u - w / 2, L.u + w / 2, L.v - h / 2, L.v + h / 2, 0.02, LABEL_DEPTH);
-    const cv = document.createElement('canvas'); cv.width = 1160; cv.height = Math.round(1160 * h / w);
-    const tex = new THREE.CanvasTexture(cv); tex.anisotropy = 4;
-    g.body.add(facePlane(w, h, tex, L.v, L.u, -0.01));
-    labelTex[k] = { cv, tex };
-  }
-  makeLabel('top'); makeLabel('low');
-
-  function onAccent(hex) {            // white or near-black text, whichever reads better
-    const n = parseInt(hex.slice(1), 16), r = n >> 16, gg = (n >> 8) & 255, b = n & 255;
-    return (0.299 * r + 0.587 * gg + 0.114 * b) > 160 ? '#101417' : '#ffffff';
-  }
-  function drawLabel(k) {
-    const { cv, tex } = labelTex[k];
-    const c = cv.getContext('2d');
-    c.fillStyle = state.accent; c.fillRect(0, 0, cv.width, cv.height);
-    c.fillStyle = onAccent(state.accent);
-    c.textBaseline = 'middle'; c.textAlign = 'center';
-    const text = (k === 'top' ? state.top : state.low).toLocaleUpperCase('az');
-    let x = cv.width / 2, avail = cv.width * 0.92;
-    if (k === 'top' && state.logo) {
-      const lh = cv.height * 0.74, lw = lh * (state.logo.width / state.logo.height);
-      c.drawImage(state.logo, cv.width * 0.03, (cv.height - lh) / 2, lw, lh);
-      x = cv.width * 0.03 + lw + (cv.width * 0.97 - cv.width * 0.03 - lw) / 2;
-      avail = cv.width * 0.94 - lw;
-    }
-    let size = cv.height * 0.6;
-    c.font = `800 ${size}px Archivo, system-ui, sans-serif`;
-    while (c.measureText(text).width > avail && size > 10) { size -= 2; c.font = `800 ${size}px Archivo, system-ui, sans-serif`; }
-    c.fillText(text, x, cv.height / 2 + size * 0.04);
-    tex.needsUpdate = true;
-  }
-  function drawLabels() { drawLabel('top'); drawLabel('low'); }
-  drawLabels();
-  if (document.fonts && document.fonts.load) document.fonts.load('800 40px Archivo').then(drawLabels).catch(function () {});
+  // ---- brand: real logo + team-name inlays (exact printed geometry, brand blue) ------------------------------
+  loadMesh('stl_lcd/inlays_placed.json', mats.inlay, g.body);
+  function drawLabels() {}
 
   // ---- inside: I2C backpack behind the LCD, layer 1 (z 21-27): ESP32-C3, TP4056, DS3231; layer 2 (z 28-38): battery, DFPlayer ------
   ubox(g.disp, mats.pcbBlue, CX - 37, CX + 5, MOD_V + 3.3, MOD_V + 18.3, FRONT_T + 9.5, FRONT_T + 18);   // PCF8574 backpack
@@ -330,23 +291,10 @@
   el('board').addEventListener('change', (ev) => { boardMesh.visible = ev.target.checked; });
   el('spin').addEventListener('change', (ev) => { controls.autoRotate = ev.target.checked; });
 
-  el('t-top').addEventListener('input', (ev) => { state.top = ev.target.value; drawLabel('top'); });
-  el('t-low').addEventListener('input', (ev) => { state.low = ev.target.value; drawLabel('low'); });
   el('accent').addEventListener('input', (ev) => { state.accent = ev.target.value; mats.inlay.color.set(state.accent); drawLabels(); });
   el('shells').addEventListener('click', (ev) => {
     const b = ev.target.closest('button'); if (!b) return;
     state.shell = b.dataset.c; mats.shell.color.set(state.shell); mats.lid.color.set(state.shell);
-  });
-  el('logo').addEventListener('change', (ev) => {
-    const f = ev.target.files && ev.target.files[0];
-    if (!f) { state.logo = null; drawLabel('top'); return; }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => { state.logo = img; drawLabel('top'); };
-      img.src = reader.result;
-    };
-    reader.readAsDataURL(f);
   });
 
   const VIEWS = { iso: [150, 95, 295], front: [0, 0, 380], side: [380, 30, 0], top: [0, 380, 1], back: [0, 30, -380] };

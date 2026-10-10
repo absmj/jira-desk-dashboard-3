@@ -26,6 +26,8 @@ import struct
 import numpy as np
 from manifold3d import CrossSection, JoinType, Manifold
 
+import brand
+
 # ---- outer shape -------------------------------------------------------------------------------------
 W, H = 98.0, 56.0   # width (X) and height (Y)
 R = 5.0             # outer corner radius
@@ -54,8 +56,11 @@ MOD_PCB_Z = (FRONT_T + MOD_POST_H, FRONT_T + MOD_POST_H + 1.6)      # PCB front/
 # ---- brand label pockets -------------------------------------------------------------------------------------
 LABEL_DEPTH = 0.6
 INLAY_GAP = 0.2
-TOP_LABEL = dict(u=CX, v=48.5, w=62.0, h=8.0)     # logo strip
-LOW_LABEL = dict(u=CX, v=8.5, w=66.0, h=7.4)      # "RETAIL LOAN TEAM"
+# Pockets follow the real outlines: the Bank Respublika logo (brand/BR_digital_logo.svg) above the window, "Retail Loan Team"
+# (Outfit SemiBold, closest free font by eye, not the bank's brand font) below it. The pocket is the outline grown by INLAY_GAP;
+# the inlay is the outline itself, printed in brand blue #3327FF.
+TOP_LABEL = dict(u=CX, v=42.5, w=39.4, kind='logo')
+LOW_LABEL = dict(u=CX, v=8.5, w=48.0, kind='text')
 
 # ---- speaker (left wall, faces sideways) --------------------------------------------------------------------------
 SPK_D = 20.0
@@ -139,9 +144,16 @@ def outline():
     return CrossSection.square([W, H]).offset(-R, JoinType.Miter, 2.0, 0).offset(R, JoinType.Round, 2.0, R_SEG)
 
 
+def label_shape(L):
+    """Brand outline as a CrossSection centred on (0, 0), already mirrored for the model's X axis."""
+    cs = brand.logo(L['w']) if L['kind'] == 'logo' else brand.team_text(L['w'])
+    return cs.mirror([1, 0])
+
+
 def label_cut(L):
     x = X(L['u'])
-    return box(x - L['w'] / 2, x + L['w'] / 2, L['v'] - L['h'] / 2, L['v'] + L['h'] / 2, -1, LABEL_DEPTH)
+    pocket = label_shape(L).offset(INLAY_GAP, JoinType.Round, 2.0, 16)
+    return Manifold.extrude(pocket, LABEL_DEPTH + 1).translate([x, L['v'], -1])
 
 
 
@@ -263,10 +275,15 @@ def build_lid():
 
 
 def build_inlays():
-    parts = []
-    for i, L in enumerate((TOP_LABEL, LOW_LABEL)):
-        w, h = L['w'] - 2 * INLAY_GAP, L['h'] - 2 * INLAY_GAP
-        parts.append(box(0, w, i * 12.0, i * 12.0 + h, 0, LABEL_DEPTH))
+    """Both inlays side by side on the bed (front face down, same mirroring as the body), 0.6 mm thick."""
+    top = Manifold.extrude(label_shape(TOP_LABEL), LABEL_DEPTH).translate([0, 0, 0])
+    low = Manifold.extrude(label_shape(LOW_LABEL), LABEL_DEPTH).translate([0, -14, 0])
+    return top + low
+
+
+def build_inlays_placed():
+    """The same two inlays at their assembled position (for the web viewer), flush in the pockets."""
+    parts = [Manifold.extrude(label_shape(L), LABEL_DEPTH).translate([X(L['u']), L['v'], 0]) for L in (TOP_LABEL, LOW_LABEL)]
     return parts[0] + parts[1]
 
 
@@ -312,6 +329,7 @@ def main():
         write_stl(part, out / f'{name}.stl')
         if name != 'inlays':
             write_json(part, out / f'{name}.json')
+    write_json(build_inlays_placed(), out / 'inlays_placed.json')
     print(f"{W:g} x {H:g} x {BODY_D + LID_T:g} mm assembled; written to {out}")
 
 

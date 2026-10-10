@@ -38,8 +38,15 @@ Edit the constants at the top of `make_enclosure.py`, rerun it, and keep the num
 (the block under "Same numbers as ...") in sync.
 
 ## Branding
-The two label pockets are 0.6 mm deep: use stickers, or print `inlays.stl` in the brand colour.
-Official logos and colours must come from the brand owners; the viewer only accepts an uploaded logo file.
+The front plate has two 0.6 mm recesses that follow real outlines: the Bank Respublika logo (above the window, 39.4 mm wide, from
+`brand/BR_digital_logo.svg`, supplied by the project owner) and "Retail Loan Team" (below it, 48 mm wide). `inlays.stl` holds
+matching solids (0.2 mm clearance per side); print them in brand blue `#3327FF` (the fill colour in the SVG) and glue them in, or use stickers.
+`inlays_placed.json` is the same geometry at its assembled position, used by `viewer_lcd.html`.
+
+* The team name is set in **Outfit SemiBold** (SIL OFL, `brand/`), picked by eye as the closest free font to the logo lettering. It is **not** the bank's official brand font; swap `brand/Outfit_600SemiBold.ttf` for the real one if you have it.
+* Thin strokes of the logo are about 1 mm: use a 0.2 mm nozzle layer or paint-fill if the 0.4 mm nozzle blurs them.
+* Using the bank's logo on a device shown outside the team is a brand-approval question for the bank, not a technical one.
+* `brand.py` converts SVG paths and font outlines to polygons (needs `fonttools svgpathtools manifold3d`).
 
 ## 16x2 LCD variant (branch `feature/lcd1602-display`)
 `make_enclosure_lcd.py` (98 x 56 mm), `check_fit_lcd.py`, `viewer_lcd.html`, output in `stl_lcd/`. See `docs/lcd1602.md`.
