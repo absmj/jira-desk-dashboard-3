@@ -31,6 +31,11 @@ public:
     static constexpr uint8_t kTaskRowsPerPage = 4;
     static constexpr uint32_t kDefaultAlertMs = 8000;
 
+    // Task rows per Tasks page: 4 for the 84x48 graphic panels, 2 for a 16x2 character LCD.
+    // Call before rebuild(). Clamped to 1..kTaskRowsPerPage.
+    void setTaskRows(uint8_t rows) { taskRows_ = rows < 1 ? 1 : (rows > kTaskRowsPerPage ? kTaskRowsPerPage : rows); }
+    uint8_t taskRows() const { return taskRows_; }
+
     // Regenerates the page list after new data arrives. Restarts at page 0 and
     // requests a redraw. An active alert keeps showing until it expires.
     void rebuild(const SprintData& data, uint32_t nowMs);
@@ -59,6 +64,7 @@ private:
     Page pages_[kMaxPages] = {};
     uint8_t count_ = 0;
     uint8_t idx_ = 0;
+    uint8_t taskRows_ = kTaskRowsPerPage;
     uint32_t since_ = 0;
     bool paused_ = false;
     bool redraw_ = true;

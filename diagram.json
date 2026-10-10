@@ -3,38 +3,118 @@
   "author": "Jira Desk Dashboard",
   "editor": "wokwi",
   "parts": [
-    { "type": "board-esp32-c3-devkitm-1", "id": "esp", "top": 0, "left": 0, "attrs": {} },
-    { "type": "wokwi-ili9341", "id": "lcd1", "top": -290, "left": 138.7, "rotate": 90, "attrs": {} },
-    { "type": "wokwi-buzzer", "id": "bz1", "top": -40, "left": -110, "attrs": { "volume": "0.5" } },
-    { "type": "wokwi-breadboard-half", "id": "bb1", "top": 150, "left": -120, "attrs": {} }
+    {
+      "type": "board-esp32-c3-devkitm-1",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-lcd1602",
+      "id": "lcd1",
+      "top": -150,
+      "left": -30,
+      "attrs": {
+        "pins": "i2c"
+      }
+    },
+    {
+      "type": "wokwi-buzzer",
+      "id": "bz1",
+      "top": -40,
+      "left": -110,
+      "attrs": {
+        "volume": "0.5"
+      }
+    },
+    {
+      "type": "wokwi-breadboard-half",
+      "id": "bb1",
+      "top": 150,
+      "left": -120,
+      "attrs": {}
+    }
   ],
   "connections": [
-    ["esp:TX", "$serialMonitor:RX", "", []],
-    ["esp:RX", "$serialMonitor:TX", "", []],
-
-    ["esp:3V3.1", "bb1:tp.1", "red", []],
-    ["esp:GND.1", "bb1:tn.1", "black", []],
-
-    ["lcd1:VCC", "bb1:tp.2", "red", []],
-    ["lcd1:LED", "bb1:tp.3", "red", []],
-    ["lcd1:GND", "bb1:tn.2", "black", []],
-
-    ["esp:4", "bb1:1t.a", "green", []],
-    ["lcd1:SCK", "bb1:1t.b", "green", []],
-    ["esp:6", "bb1:2t.a", "blue", []],
-    ["lcd1:MOSI", "bb1:2t.b", "blue", []],
-    ["esp:5", "bb1:3t.a", "yellow", []],
-    ["lcd1:MISO", "bb1:3t.b", "yellow", []],
-    ["esp:10", "bb1:4t.a", "purple", []],
-    ["lcd1:CS", "bb1:4t.b", "purple", []],
-    ["esp:3", "bb1:5t.a", "orange", []],
-    ["lcd1:D/C", "bb1:5t.b", "orange", []],
-    ["esp:2", "bb1:6t.a", "gray", []],
-    ["lcd1:RST", "bb1:6t.b", "gray", []],
-
-    ["esp:7", "bb1:7t.a", "red", []],
-    ["bz1:2", "bb1:7t.b", "red", []],
-    ["bz1:1", "bb1:tn.3", "black", []]
+    [
+      "esp:TX",
+      "$serialMonitor:RX",
+      "",
+      []
+    ],
+    [
+      "esp:RX",
+      "$serialMonitor:TX",
+      "",
+      []
+    ],
+    [
+      "esp:3V3.1",
+      "bb1:tp.1",
+      "red",
+      []
+    ],
+    [
+      "esp:GND.1",
+      "bb1:tn.1",
+      "black",
+      []
+    ],
+    [
+      "lcd1:VCC",
+      "bb1:tp.2",
+      "red",
+      []
+    ],
+    [
+      "lcd1:GND",
+      "bb1:tn.2",
+      "black",
+      []
+    ],
+    [
+      "esp:8",
+      "bb1:1t.a",
+      "green",
+      []
+    ],
+    [
+      "lcd1:SDA",
+      "bb1:1t.b",
+      "green",
+      []
+    ],
+    [
+      "esp:9",
+      "bb1:2t.a",
+      "blue",
+      []
+    ],
+    [
+      "lcd1:SCL",
+      "bb1:2t.b",
+      "blue",
+      []
+    ],
+    [
+      "esp:7",
+      "bb1:7t.a",
+      "red",
+      []
+    ],
+    [
+      "bz1:2",
+      "bb1:7t.b",
+      "red",
+      []
+    ],
+    [
+      "bz1:1",
+      "bb1:tn.3",
+      "black",
+      []
+    ]
   ],
   "dependencies": {}
 }

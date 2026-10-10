@@ -21,7 +21,7 @@ void Pager::rebuild(const SprintData& data, uint32_t nowMs) {
             add(PageKind::Attention, 0, 1, 4000);
         }
         const uint8_t open = openTaskCount(data);
-        const uint8_t pages = (open + kTaskRowsPerPage - 1) / kTaskRowsPerPage;
+        const uint8_t pages = (open + taskRows_ - 1) / taskRows_;
         for (uint8_t i = 0; i < pages; ++i) add(PageKind::Tasks, i, pages, 4500);
     }
 

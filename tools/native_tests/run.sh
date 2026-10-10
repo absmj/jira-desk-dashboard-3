@@ -50,3 +50,11 @@ if command -v node >/dev/null 2>&1; then
 else
     "$OUT/test_ble"
 fi
+
+echo
+echo "16x2 HD44780 (UTF-8 -> codes, CGRAM, fake panel, text screens)"
+g++ $WARN \
+    src/app/SprintData.cpp src/app/Pager.cpp src/app/SampleData.cpp src/app/TextScreens.cpp \
+    src/display/AzText.cpp src/display/LcdText.cpp src/display/Hd44780.cpp src/display/Hd44780Display.cpp \
+    tools/native_tests/test_lcd.cpp -o "$OUT/test_lcd"
+"$OUT/test_lcd"

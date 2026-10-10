@@ -26,6 +26,11 @@
 //   18/19 USB D-/D+                reserved for native USB, never used
 
 namespace pins {
+// 16x2 HD44780 on a PCF8574 I2C backpack (build flag -DDISPLAY_HD44780). Shared with the DS3231 later.
+// These are the same GPIOs the Phase 3 plan already reserved for I2C; the five Nokia pins are then free.
+constexpr int8_t kI2cSda = 8;
+constexpr int8_t kI2cScl = 9;
+
 constexpr int8_t kLcdClk = 0;
 constexpr int8_t kLcdDin = 1;
 constexpr int8_t kLcdDc  = 3;

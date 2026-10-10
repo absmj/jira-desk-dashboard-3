@@ -7,6 +7,7 @@
 #include "app/JsonFile.h"
 #include "app/Pager.h"
 #include "app/Screens.h"
+#include "app/TextScreens.h"
 #include "app/SimClock.h"
 #include "app/SprintData.h"
 #include "app/SprintLoader.h"
@@ -18,7 +19,18 @@
 #endif
 #include "pins.h"
 
-#if defined(DISPLAY_ILI9341)
+#ifndef LCD_I2C_ADDR
+#define LCD_I2C_ADDR 0x27  // most PCF8574 backpacks; some use 0x3F (platformio.ini build_flags)
+#endif
+
+#if defined(DISPLAY_HD44780)
+// 16x2 character LCD behind a PCF8574 I2C backpack (docs/lcd1602.md). Text-only: renderTextPage().
+#include <Wire.h>
+#include "display/Hd44780Display.h"
+#include "display/Pcf8574Port.h"
+static Pcf8574Port lcdPort(LCD_I2C_ADDR);
+static Hd44780Display display(lcdPort, 16, 2);
+#elif defined(DISPLAY_ILI9341)
 #include "display/Ili9341Display.h"
 static Ili9341Display display(pins::kTftCs, pins::kTftDc, pins::kTftRst);
 #else
@@ -96,6 +108,10 @@ void setup() {
     delay(300);  // let USB CDC enumerate on real hardware
     Serial.println("[boot] Jira Desk Dashboard - Phase 2b");
 
+#if defined(DISPLAY_HD44780)
+    Wire.begin(pins::kI2cSda, pins::kI2cScl);  // shared with the DS3231 later (different address)
+    pager.setTaskRows(2);                      // two task rows fit a 16x2 page
+#endif
     display.begin();
     audio.begin();
     audio.setVolume(20);
@@ -151,8 +167,20 @@ void loop() {
         }
     }
 
-    if (pager.tick(now)) {
+#if defined(DISPLAY_HD44780)
+    // A long alert message is shown two lines at a time, so it needs a redraw even without a page change.
+    static uint32_t lastAlertDrawMs = 0;
+    const bool alertTick = pager.alertActive() && static_cast<uint32_t>(now - lastAlertDrawMs) >= kAlertChunkMs / 2;
+#else
+    const bool alertTick = false;
+#endif
+    if (pager.tick(now) || alertTick) {
         const DateTime dt = simClock.now(now);
+#if defined(DISPLAY_HD44780)
+        lastAlertDrawMs = now;
+        renderTextPage(display, sprint, dt.date, pager, now);
+#else
         renderPage(display, sprint, dt.date, pager);
+#endif
     }
 }
