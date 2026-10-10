@@ -83,14 +83,21 @@ static void dumpFsPartition() {
     Serial.println();
 }
 
+// Boot result, repeated in the 5 s heartbeat (the monitor often connects after the boot lines were printed).
+static bool gFsOk = false;
+static char gSprintState[48] = "not loaded";
+static char gAlertsState[48] = "not loaded";
+
 static void loadData() {
     const char* err = nullptr;
     JsonDocument doc;
 
     if (readJsonFile(LittleFS, "/device/sprint.json", doc, &err) && fillSprint(doc, sprint, &err)) {
         Serial.println("[data] sprint.json loaded");
+        snprintf(gSprintState, sizeof gSprintState, "OK");
     } else {
         Serial.printf("[data] sprint.json rejected: %s\n", err);
+        snprintf(gSprintState, sizeof gSprintState, "ERR %s", err ? err : "?");
     }
 
     doc.clear();
@@ -98,8 +105,10 @@ static void loadData() {
     if (readJsonFile(LittleFS, "/device/alerts.json", doc, &err) && fillAlerts(doc, alerts, &err)) {
         Serial.printf("[data] alerts.json loaded: %u rules, %u skipped\n",
                       static_cast<unsigned>(alerts.count), static_cast<unsigned>(alerts.skipped));
+        snprintf(gAlertsState, sizeof gAlertsState, "OK %u rules", static_cast<unsigned>(alerts.count));
     } else {
         Serial.printf("[data] alerts.json rejected: %s\n", err);
+        snprintf(gAlertsState, sizeof gAlertsState, "ERR %s", err ? err : "?");
     }
 }
 
@@ -123,6 +132,7 @@ void setup() {
         Serial.println("[fs] Run `pio run -e sim -t buildfs`, rebuild, and check merge_firmware output.");
         dumpFsPartition();
     } else {
+        gFsOk = true;
         loadData();
     }
 
@@ -145,8 +155,9 @@ void loop() {
     static uint32_t lastBeatMs = 0;
     if (static_cast<uint32_t>(now - lastBeatMs) >= 5000) {
         lastBeatMs = now;
-        Serial.printf("[alive] %lu s, page %u\n", static_cast<unsigned long>(now / 1000),
-                      static_cast<unsigned>(pager.pageCount()));
+        Serial.printf("[alive] %lu s | pages=%u | fs=%s | sprint=%s | alerts=%s\n",
+                      static_cast<unsigned long>(now / 1000), static_cast<unsigned>(pager.pageCount()),
+                      gFsOk ? "OK" : "MOUNT FAILED", gSprintState, gAlertsState);
     }
 
     // A file received over Bluetooth was verified, stored and swapped in: refresh what depends on it.
