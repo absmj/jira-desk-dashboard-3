@@ -40,3 +40,7 @@ Edit the constants at the top of `make_enclosure.py`, rerun it, and keep the num
 ## Branding
 The two label pockets are 0.6 mm deep: use stickers, or print `inlays.stl` in the brand colour.
 Official logos and colours must come from the brand owners; the viewer only accepts an uploaded logo file.
+
+## 16x2 LCD variant (branch `feature/lcd1602-display`)
+`make_enclosure_lcd.py` (98 x 56 mm), `check_fit_lcd.py`, `viewer_lcd.html`, output in `stl_lcd/`. See `docs/lcd1602.md`.
+The square files above are the Nokia 5110 version and are unchanged.

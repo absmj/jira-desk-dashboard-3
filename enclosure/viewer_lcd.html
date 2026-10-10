@@ -1,0 +1,382 @@
+<meta charset="utf-8">
+<title>Sprint Desk Korpusu 16x2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100,400;100,600;125,800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* Layout: a workshop bench. Big 3D stage left, a narrow spec sheet right; stacks on phones. */
+  :root {
+    --bg: #eceeef;
+    --panel: #f7f8f8;
+    --fg: #1b2124;
+    --muted: #5d676c;
+    --line: #cfd5d8;
+    --stage: #dfe3e5;
+    --accent-ui: #1f5fbf;
+    --warn: #8a4b00;
+    --font-ui: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14181a; --panel: #1b2124; --fg: #e6eaeb; --muted: #97a3a8; --line: #2d363a;
+      --stage: #101416; --accent-ui: #6ea2f2; --warn: #e0a95a; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14181a; --panel: #1b2124; --fg: #e6eaeb; --muted: #97a3a8; --line: #2d363a;
+    --stage: #101416; --accent-ui: #6ea2f2; --warn: #e0a95a; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--fg); font: 14px/1.5 var(--font-ui); padding-inline: 16px; padding-block: 16px; }
+  .wrap { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; max-width: 1280px; margin: 0 auto; }
+  @media (max-width: 860px) { .wrap { grid-template-columns: minmax(0, 1fr); } }
+  h1 { font: 800 22px/1.15 var(--font-ui); font-stretch: 125%; letter-spacing: .01em; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin: 0 0 12px; }
+  .stage { position: relative; background: var(--stage); border: 1px solid var(--line); border-radius: 6px; aspect-ratio: 4 / 3; min-height: 320px; overflow: hidden; }
+  .stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  .stage .hint { position: absolute; left: 10px; bottom: 8px; font: 11px var(--font-mono); color: var(--muted); pointer-events: none; }
+  .views { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  button, select { font: inherit; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 6px 10px; cursor: pointer; }
+  button:hover { border-color: var(--accent-ui); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--accent-ui); outline-offset: 2px; }
+  aside { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  h2 { font: 600 11px var(--font-mono); text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin: 0 0 8px; }
+  label { display: grid; gap: 4px; margin-bottom: 8px; }
+  label span, .row span { color: var(--muted); font-size: 12px; }
+  input[type=text] { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; width: 100%; }
+  input[type=range] { width: 100%; accent-color: var(--accent-ui); }
+  input[type=color] { width: 44px; height: 30px; padding: 0; border: 1px solid var(--line); background: none; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .swatches { display: flex; gap: 6px; }
+  .swatches button { width: 28px; height: 28px; padding: 0; border-radius: 50%; }
+  table { width: 100%; border-collapse: collapse; font: 12px var(--font-mono); }
+  td { padding: 3px 0; border-bottom: 1px dotted var(--line); vertical-align: top; }
+  td:last-child { text-align: right; padding-left: 8px; }
+  .note { color: var(--warn); font-size: 12px; margin: 8px 0 0; }
+  .small { color: var(--muted); font-size: 12px; margin: 6px 0 0; }
+  .tablewrap { overflow-x: auto; }
+</style>
+
+<div class="wrap">
+  <main>
+    <h1>Sprint Desk Korpusu</h1>
+    <p class="sub">Prototip: 98 × 56 mm, 16×2 HD44780 ekranı, batareya ilə işləyir, Kanban lövhəsindən maqnitlə və ya vint ilə asılır.</p>
+    <div class="stage" id="stage">
+      <div class="hint">sürüşdür: fırlat · təkər: yaxınlaşdır · iki barmaq: sürüşdür</div>
+    </div>
+    <div class="views">
+      <button data-view="iso">Ümumi</button>
+      <button data-view="front">Qarşıdan</button>
+      <button data-view="side">Yandan</button>
+      <button data-view="top">Yuxarıdan</button>
+      <button data-view="back">Arxadan</button>
+    </div>
+  </main>
+
+  <aside>
+    <section>
+      <h2>Marka</h2>
+      <label><span>Yuxarı lent</span><input type="text" id="t-top" value="BANK RESPUBLIKA" maxlength="22"></label>
+      <label><span>Aşağı lent</span><input type="text" id="t-low" value="RETAIL LOAN TEAM" maxlength="22"></label>
+      <div class="row"><span>Marka rəngi (rəsmi HEX-i seçin)</span><input type="color" id="accent" value="#2f6fdc"></div>
+      <div class="row"><span>Korpus rəngi</span>
+        <div class="swatches" id="shells">
+          <button data-c="#e8e7e2" title="Ağ" style="background:#e8e7e2"></button>
+          <button data-c="#8d9499" title="Boz" style="background:#8d9499"></button>
+          <button data-c="#33373c" title="Qrafit" style="background:#33373c"></button>
+        </div>
+      </div>
+      <label><span>Loqo faylı (PNG/SVG, yuxarı lentin solunda görünür)</span><input type="file" id="logo" accept="image/*"></label>
+      <p class="small">Mən loqonu çəkmirəm: rəsmi faylı özünüz yükləyin. Rəng və mətn yalnız ilkin nümunədir.</p>
+    </section>
+
+    <section>
+      <h2>Görünüş</h2>
+      <label><span>Açılmış görünüş</span><input type="range" id="explode" min="0" max="100" value="0"></label>
+      <div class="row"><span>Rentgen (daxili hissələr)</span><input type="checkbox" id="xray"></div>
+      <div class="row"><span>Kanban lövhəsi (miqyasla)</span><input type="checkbox" id="board" checked></div>
+      <div class="row"><span>Avtomatik fırlanma</span><input type="checkbox" id="spin"></div>
+    </section>
+
+    <section>
+      <h2>Ölçülər, mm</h2>
+      <div class="tablewrap"><table>
+        <tr><td>Korpus (e × h × qalınlıq)</td><td>98 × 56 × 43,5</td></tr>
+        <tr><td>Divar</td><td>2,0</td></tr>
+        <tr><td>Ekran pəncərəsi</td><td>66 × 16</td></tr>
+        <tr><td>Ekran modulu 1602 (PCB)</td><td>80 × 36</td></tr>
+        <tr><td>Batareya (yastı LiPo)</td><td>≈ 50 × 34 × 10</td></tr>
+        <tr><td>Dinamik</td><td>Ø 20</td></tr>
+        <tr><td>USB-C yuvaları</td><td>2 × (10 × 4)</td></tr>
+        <tr><td>microSD yuvası</td><td>15 × 3</td></tr>
+        <tr><td>Maqnit yuvaları</td><td>4 × Ø10,2 × 3,2</td></tr>
+        <tr><td>Lent yuvaları</td><td>62 × 8 / 66 × 7,4</td></tr>
+        <tr><td>Düymələr (yuxarı kənar)</td><td>POWER, VOL−, VOL+</td></tr>
+        <tr><td>Batareya yuvası</td><td>50 × 34 × 10 (halqa + 3 qabırğa)</td></tr>
+      </table></div>
+      <p class="note">Komponent ölçüləri tipik qiymətlərdir, sizin modulları ölçməmişəm. Batareya, dinamik və maqnit alandan sonra kumpasla yoxlayın.</p>
+      <p class="small">Asılma: arxa qapaqda 4 maqnit (maqnitli lövhə) və açar yarığı (vint). Çap faylları: <code>enclosure/stl_lcd/</code> (body, lid, inlays). Lent yuvaları 0,6 mm dərinlikdədir: stiker yapışdırın və ya inlays hissəsini marka rəngində çap edin.</p>
+    </section>
+  </aside>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function () {
+  'use strict';
+  // Same numbers as enclosure/make_enclosure.py (mm). Model axes: Z = 0 is the front face, Z grows toward the back,
+  // Y up. X(u) turns "distance from the viewer's left edge" into model X (the model is later rotated 180 deg about Y).
+  const W = 98, H = 56, T = 2, FRONT_T = 2, BODY_D = 39, LID_T = 4.5, TOTAL = BODY_D + LID_T, CX = W / 2;
+  const X = (u) => W - u;
+  const MOD_V = 22, GAP = 0.2, LABEL_DEPTH = 0.6;
+  const LABELS = { top: { u: CX, v: 48.5, w: 62, h: 8 }, low: { u: CX, v: 8.5, w: 66, h: 7.4 } };
+
+  const stage = document.getElementById('stage');
+  const state = { accent: '#2f6fdc', shell: '#e8e7e2', top: 'BANK RESPUBLIKA', low: 'RETAIL LOAN TEAM', logo: null };
+
+  // ---- renderer / scene ----------------------------------------------------------------------------
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  stage.insertBefore(renderer.domElement, stage.firstChild);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(30, 4 / 3, 1, 3000);
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.autoRotateSpeed = 1.2;
+
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x778088, 0.9));
+  const key = new THREE.DirectionalLight(0xffffff, 0.85); key.position.set(120, 180, 220); scene.add(key);
+  const rim = new THREE.DirectionalLight(0xffffff, 0.3); rim.position.set(-160, 60, -120); scene.add(rim);
+
+  // model space -> centred, front facing the camera (+Z)
+  const root = new THREE.Group();
+  root.rotation.y = Math.PI;
+  scene.add(root);
+  const model = new THREE.Group();
+  model.position.set(-W / 2, -H / 2, -TOTAL / 2);
+  root.add(model);
+
+  const mats = {
+    shell: new THREE.MeshStandardMaterial({ color: state.shell, roughness: 0.62, transparent: true, opacity: 1 }),
+    lid: new THREE.MeshStandardMaterial({ color: state.shell, roughness: 0.7 }),
+    inlay: new THREE.MeshStandardMaterial({ color: state.accent, roughness: 0.55 }),
+    pcbGreen: new THREE.MeshStandardMaterial({ color: 0x1d6b4f, roughness: 0.5 }),
+    pcbBlue: new THREE.MeshStandardMaterial({ color: 0x1f4f9e, roughness: 0.5 }),
+    pcbRed: new THREE.MeshStandardMaterial({ color: 0xa8322c, roughness: 0.5 }),
+    black: new THREE.MeshStandardMaterial({ color: 0x15181a, roughness: 0.6 }),
+    metal: new THREE.MeshStandardMaterial({ color: 0xb9bec2, roughness: 0.35, metalness: 0.8 }),
+    battery: new THREE.MeshStandardMaterial({ color: 0x8c93a6, roughness: 0.45 }),
+  };
+
+  const g = { body: new THREE.Group(), disp: new THREE.Group(), l1: new THREE.Group(), bat: new THREE.Group(), lid: new THREE.Group() };
+  Object.values(g).forEach((grp) => model.add(grp));
+  g.lid.position.z = BODY_D;   // lid mesh is modelled with its inner face at z = 0
+
+  function loadMesh(url, mat, group) {
+    fetch(url).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }).then((d) => {
+      let geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(d.positions, 3));
+      geo.setIndex(d.index);
+      geo = geo.toNonIndexed();          // flat shading: keep the sharp edges of a printed part
+      geo.computeVertexNormals();
+      group.add(new THREE.Mesh(geo, mat));
+    }).catch(() => {
+      const msg = document.createElement('div');
+      msg.className = 'hint';
+      msg.style.cssText = 'left:10px;top:8px;bottom:auto;color:var(--warn)';
+      msg.textContent = url + ' yüklənmədi: səhifəni stl/ qovluğu ilə birlikdə server edin.';
+      stage.appendChild(msg);
+    });
+  }
+  loadMesh('stl_lcd/body.json', mats.shell, g.body);
+  loadMesh('stl_lcd/lid.json', mats.lid, g.lid);
+
+  // box by viewer-left offsets: u0..u1 across, v0..v1 up, z0..z1 deep
+  function ubox(group, mat, u0, u1, v0, v1, z0, z1) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(u1 - u0, v1 - v0, z1 - z0), mat);
+    m.position.set(X((u0 + u1) / 2), (v0 + v1) / 2, (z0 + z1) / 2);
+    group.add(m);
+    return m;
+  }
+
+  // ---- LCD module 1602: PCB on four posts, bezel against the front plate, character glass ----------------------------------
+  ubox(g.disp, mats.pcbGreen, CX - 40, CX + 40, MOD_V - 18, MOD_V + 18, FRONT_T + 7.9, FRONT_T + 9.5);   // PCB 80 x 36
+  ubox(g.disp, mats.metal, CX - 35.5, CX + 35.5, MOD_V - 12.1, MOD_V + 12.1, FRONT_T - 0.4, FRONT_T + 7.9); // bezel
+  const lcd = document.createElement('canvas'); lcd.width = 16 * 6; lcd.height = 2 * 9;
+  (function drawLcd() {
+    const c = lcd.getContext('2d');
+    c.fillStyle = '#9bb36a'; c.fillRect(0, 0, lcd.width, lcd.height);
+    c.fillStyle = '#26331a'; c.font = '8px monospace'; c.textBaseline = 'top';
+    c.fillText('SPRINT 24    65%', 0, 0);
+    c.fillText('26/40 =======...', 0, 9);
+  })();
+  const lcdTex = new THREE.CanvasTexture(lcd);
+  lcdTex.magFilter = THREE.NearestFilter; lcdTex.minFilter = THREE.NearestFilter;
+  // planes face -Z in model space (toward the viewer after the root rotation); two half-turns about Y cancel, so text reads normally
+  function facePlane(w, h, tex, v, u, z) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex }));
+    m.rotation.y = Math.PI;
+    m.position.set(X(u), v, z);
+    return m;
+  }
+  g.body.add(facePlane(56, 11.5, lcdTex, MOD_V, CX, FRONT_T - 0.45));
+
+  // ---- brand labels: accent plate sitting in the pocket + a text plane in front of it ------------------------
+  const labelTex = {};
+  function makeLabel(k) {
+    const L = LABELS[k], w = L.w - 2 * GAP, h = L.h - 2 * GAP;
+    ubox(g.body, mats.inlay, L.u - w / 2, L.u + w / 2, L.v - h / 2, L.v + h / 2, 0.02, LABEL_DEPTH);
+    const cv = document.createElement('canvas'); cv.width = 1160; cv.height = Math.round(1160 * h / w);
+    const tex = new THREE.CanvasTexture(cv); tex.anisotropy = 4;
+    g.body.add(facePlane(w, h, tex, L.v, L.u, -0.01));
+    labelTex[k] = { cv, tex };
+  }
+  makeLabel('top'); makeLabel('low');
+
+  function onAccent(hex) {            // white or near-black text, whichever reads better
+    const n = parseInt(hex.slice(1), 16), r = n >> 16, gg = (n >> 8) & 255, b = n & 255;
+    return (0.299 * r + 0.587 * gg + 0.114 * b) > 160 ? '#101417' : '#ffffff';
+  }
+  function drawLabel(k) {
+    const { cv, tex } = labelTex[k];
+    const c = cv.getContext('2d');
+    c.fillStyle = state.accent; c.fillRect(0, 0, cv.width, cv.height);
+    c.fillStyle = onAccent(state.accent);
+    c.textBaseline = 'middle'; c.textAlign = 'center';
+    const text = (k === 'top' ? state.top : state.low).toLocaleUpperCase('az');
+    let x = cv.width / 2, avail = cv.width * 0.92;
+    if (k === 'top' && state.logo) {
+      const lh = cv.height * 0.74, lw = lh * (state.logo.width / state.logo.height);
+      c.drawImage(state.logo, cv.width * 0.03, (cv.height - lh) / 2, lw, lh);
+      x = cv.width * 0.03 + lw + (cv.width * 0.97 - cv.width * 0.03 - lw) / 2;
+      avail = cv.width * 0.94 - lw;
+    }
+    let size = cv.height * 0.6;
+    c.font = `800 ${size}px Archivo, system-ui, sans-serif`;
+    while (c.measureText(text).width > avail && size > 10) { size -= 2; c.font = `800 ${size}px Archivo, system-ui, sans-serif`; }
+    c.fillText(text, x, cv.height / 2 + size * 0.04);
+    tex.needsUpdate = true;
+  }
+  function drawLabels() { drawLabel('top'); drawLabel('low'); }
+  drawLabels();
+  if (document.fonts && document.fonts.load) document.fonts.load('800 40px Archivo').then(drawLabels).catch(function () {});
+
+  // ---- inside: I2C backpack behind the LCD, layer 1 (z 21-27): ESP32-C3, TP4056, DS3231; layer 2 (z 28-38): battery, DFPlayer ------
+  ubox(g.disp, mats.pcbBlue, CX - 37, CX + 5, MOD_V + 3.3, MOD_V + 18.3, FRONT_T + 9.5, FRONT_T + 18);   // PCF8574 backpack
+  ubox(g.l1, mats.pcbGreen, 10, 28, 2.2, 24.7, 21, 22.2);          // ESP32-C3 SuperMini
+  ubox(g.l1, mats.metal, 14.5, 23.5, 2.2, 9.7, 22.2, 25.2);        // its USB-C
+  ubox(g.l1, mats.pcbRed, 34, 51, 2.2, 30.2, 21, 22.6);            // TP4056 charger
+  ubox(g.l1, mats.metal, 38.5, 47.5, 2.2, 9.7, 22.6, 25.8);        // its USB-C
+  ubox(g.l1, mats.pcbBlue, 52.5, 90, 3, 25, 21, 22.6);             // DS3231
+  ubox(g.l1, mats.black, 60, 80, 6, 18, 22.6, 27.2);               // CR2032 holder
+  ubox(g.bat, mats.battery, 12, 62, 6, 40, 27.8, 37.8);            // flat LiPo, e.g. 103450
+  ubox(g.bat, mats.pcbGreen, 65, 86, 22.5, 43.5, 28, 29.6);        // DFPlayer Mini
+  ubox(g.bat, mats.metal, 86, 95.5, 28, 38, 29.6, 32);             // its microSD socket, toward the right wall
+  const spk = new THREE.Mesh(new THREE.CylinderGeometry(10, 10, 4, 40), mats.black);
+  spk.rotation.z = Math.PI / 2;                                    // axis along X, against the viewer-left wall (model X = W)
+  spk.position.set(W - T - 2, 26, 24);
+  g.body.add(spk);
+
+  // keypad on the top edge: strip + three tall-plunger tact switches (POWER recessed, VOL-/VOL+ proud)
+  const BTN_Z = 14.1, STRIP_TOP = H - T - 8, BODY_H = 3.5;
+  ubox(g.l1, mats.pcbGreen, 14, 88, STRIP_TOP - 1.6, STRIP_TOP, BTN_Z - 8, BTN_Z + 8);
+  [{ u: 20, H: 9 }, { u: 68, H: 11 }, { u: 82, H: 11 }].forEach((b) => {
+    ubox(g.l1, mats.metal, b.u - 3, b.u + 3, STRIP_TOP, STRIP_TOP + BODY_H, BTN_Z - 3, BTN_Z + 3);
+    const len = b.H - BODY_H;
+    const pl = new THREE.Mesh(new THREE.CylinderGeometry(1.75, 1.75, len, 24), mats.black);
+    pl.position.set(X(b.u), STRIP_TOP + BODY_H + len / 2, BTN_Z);
+    g.l1.add(pl);
+  });
+
+  // ---- Kanban board backdrop at real scale ---------------------------------------------------------------------------
+  const boardCv = document.createElement('canvas'); boardCv.width = 1440; boardCv.height = 900;
+  (function drawBoard() {
+    const c = boardCv.getContext('2d');
+    c.fillStyle = '#f2f4f5'; c.fillRect(0, 0, 1440, 900);
+    c.strokeStyle = '#b8c0c4'; c.lineWidth = 3;
+    for (let i = 1; i < 3; i++) { c.beginPath(); c.moveTo(i * 480, 0); c.lineTo(i * 480, 900); c.stroke(); }
+    c.fillStyle = '#5d676c'; c.font = '700 34px Archivo, sans-serif'; c.textAlign = 'center';
+    ['GÖRÜLƏCƏK', 'İCRADA', 'TAMAMLANDI'].forEach((t, i) => c.fillText(t, i * 480 + 240, 60));
+    const notes = [['#ffe27a', 0, 0], ['#ffe27a', 0, 1], ['#9fd8ff', 1, 0], ['#ffb3a7', 1, 1], ['#b9e6a5', 2, 0], ['#b9e6a5', 2, 1], ['#b9e6a5', 2, 2]];
+    notes.forEach(([col, ci, ri]) => {
+      const x = ci * 480 + 80 + (ri % 2) * 18, y = 110 + ri * 190;
+      c.fillStyle = 'rgba(0,0,0,.12)'; c.fillRect(x + 5, y + 6, 300, 150);
+      c.fillStyle = col; c.fillRect(x, y, 300, 150);
+      c.fillStyle = 'rgba(0,0,0,.28)'; c.fillRect(x + 24, y + 38, 200, 8); c.fillRect(x + 24, y + 66, 240, 8); c.fillRect(x + 24, y + 94, 150, 8);
+    });
+  })();
+  const boardMesh = new THREE.Mesh(new THREE.PlaneGeometry(288, 180), new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(boardCv), roughness: 0.9 }));
+  boardMesh.position.set(-60, -20, -TOTAL / 2 - 0.2);      // device sits at the top of the IN PROGRESS column's right edge
+  scene.add(boardMesh);
+  if (document.fonts && document.fonts.load) document.fonts.load('700 34px Archivo').catch(function () {});
+
+  // ---- interaction ---------------------------------------------------------------------------------------------------------
+  const el = (id) => document.getElementById(id);
+  function applyExplode(v) {
+    const e = v / 100;   // everything moves toward the viewer; the lid stays on the board
+    g.body.position.z = -90 * e;
+    g.disp.position.z = -65 * e;
+    g.l1.position.z = -38 * e;
+    g.bat.position.z = -18 * e;
+  }
+  el('explode').addEventListener('input', (ev) => applyExplode(+ev.target.value));
+  el('xray').addEventListener('change', (ev) => {
+    mats.shell.opacity = ev.target.checked ? 0.2 : 1;
+    mats.shell.depthWrite = !ev.target.checked;
+    mats.shell.needsUpdate = true;
+  });
+  el('board').addEventListener('change', (ev) => { boardMesh.visible = ev.target.checked; });
+  el('spin').addEventListener('change', (ev) => { controls.autoRotate = ev.target.checked; });
+
+  el('t-top').addEventListener('input', (ev) => { state.top = ev.target.value; drawLabel('top'); });
+  el('t-low').addEventListener('input', (ev) => { state.low = ev.target.value; drawLabel('low'); });
+  el('accent').addEventListener('input', (ev) => { state.accent = ev.target.value; mats.inlay.color.set(state.accent); drawLabels(); });
+  el('shells').addEventListener('click', (ev) => {
+    const b = ev.target.closest('button'); if (!b) return;
+    state.shell = b.dataset.c; mats.shell.color.set(state.shell); mats.lid.color.set(state.shell);
+  });
+  el('logo').addEventListener('change', (ev) => {
+    const f = ev.target.files && ev.target.files[0];
+    if (!f) { state.logo = null; drawLabel('top'); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => { state.logo = img; drawLabel('top'); };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(f);
+  });
+
+  const VIEWS = { iso: [150, 95, 295], front: [0, 0, 380], side: [380, 30, 0], top: [0, 380, 1], back: [0, 30, -380] };
+  function setView(name) {
+    const v = VIEWS[name]; camera.position.set(v[0], v[1], v[2]);
+    controls.target.set(0, 0, 0); controls.update();
+  }
+  document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
+  setView('iso');
+
+  function resize() {
+    const r = stage.getBoundingClientRect();
+    renderer.setSize(r.width, r.height, false);
+    camera.aspect = r.width / r.height; camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(resize).observe(stage); resize();
+
+  function applyTheme() {
+    const c = getComputedStyle(document.documentElement).getPropertyValue('--stage').trim() || '#dfe3e5';
+    renderer.setClearColor(new THREE.Color(c), 1);
+  }
+  applyTheme();
+  if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+  new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  (function loop() {
+    controls.update();
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  })();
+  window.__ready = true;
+})();
+</script>
